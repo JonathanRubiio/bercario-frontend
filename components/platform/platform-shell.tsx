@@ -15,7 +15,7 @@ import { ProfileView } from '@/components/platform/profile-view'
 import { LandingConfig } from '@/components/platform/landing-config'
 import { AdminLeadsView } from './admin-leads-view'
 import { useAuth } from '@/context/auth-context'
-import { useAnime, useAnimeImperative } from '@/hooks/use-anime'
+import { useAnime, useAnimeImperative } from '../../hooks/use-anime'
 import type { BusinessProfile, LandingSection } from '@/lib/bercario-data'
 import styles from './platform-shell.module.scss'
 

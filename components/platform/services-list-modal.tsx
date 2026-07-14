@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useAnimeImperative, animateSelector } from '@/hooks/use-anime'
+import { useAnimeImperative, animateSelector } from '../../hooks/use-anime'
 import { stagger } from 'animejs' // Importación directa de stagger para animejs v4
 import { X } from 'lucide-react'
 

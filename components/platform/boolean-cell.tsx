@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useAnimeImperative } from '@/hooks/use-anime'
+import { useAnimeImperative } from '../../hooks/use-anime'
 
 interface BooleanCellProps {
   initialChecked: boolean

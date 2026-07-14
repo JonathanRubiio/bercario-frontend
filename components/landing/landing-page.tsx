@@ -46,7 +46,7 @@ const values = [
 import styles from './landing-page.module.scss'
 import { useRouter } from 'next/navigation'
 import { leadsService } from '@/lib/api/services/leads'
-import { useReveal } from '@/hooks/use-reveal'
+import { useReveal } from '../../hooks/use-reveal'
 
 export function LandingPage() {
   const [sent, setSent] = useState(false)
