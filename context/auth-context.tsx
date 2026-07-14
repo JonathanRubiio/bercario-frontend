@@ -31,19 +31,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return
       }
 
-      if (token === 'demo-token-12345') {
-        // Carga rápida del usuario demo sin pegarle a la API
-        setUser({
-          id: 'demo-u1',
-          email: 'mayorista@demo.co',
-          name: 'Calzado La Frontera',
-          role: 'mayorista',
-          businessSlug: 'calzado-la-frontera',
-        })
-        setLoading(false)
-        return
-      }
-
       try {
         const currentUser = await authService.getCurrentUser()
         setUser(currentUser)
@@ -74,21 +61,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setError(null)
     setLoading(true)
 
-    // Simulación del demo si no hay backend activo
-    if (email === 'mayorista@demo.co' && password === 'demo1234') {
-      localStorage.setItem('bercario_token', 'demo-token-12345')
-      setUser({
-        id: 'demo-u1',
-        email: 'mayorista@demo.co',
-        name: 'Calzado La Frontera',
-        role: 'mayorista',
-        businessSlug: 'calzado-la-frontera',
-      })
-      setLoading(false)
-      router.push('/platform')
-      return
-    }
-
     try {
       const response = await authService.login(email, password)
       setUser(response.user)
@@ -104,15 +76,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const handleLogout = async () => {
     setLoading(true)
-    const token = typeof window !== 'undefined' ? localStorage.getItem('bercario_token') : null
-
-    if (token === 'demo-token-12345') {
-      localStorage.removeItem('bercario_token')
-      setUser(null)
-      setLoading(false)
-      router.push('/')
-      return
-    }
 
     try {
       await authService.logout()

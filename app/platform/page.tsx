@@ -31,26 +31,12 @@ export default function PlatformPage() {
 
     async function loadData() {
       try {
-        const token = localStorage.getItem('bercario_token')
-        // Si es token demo, usamos los datos locales
-        if (token === 'demo-token-12345') {
-          // Intentar leer de localStorage si ya hay modificaciones locales
-          const cachedProfile = localStorage.getItem('bercario_profile')
-          const cachedSections = localStorage.getItem('bercario_sections')
-
-          if (cachedProfile) setProfile(JSON.parse(cachedProfile))
-          if (cachedSections) setSections(JSON.parse(cachedSections))
-          
-          setFetching(false)
-          return
-        }
-
         // Si es backend real
         const data = await profileService.getMyProfile()
         if (data) {
           setProfile(data)
-          if (data.faqs) { // o la estructura que venga de backend
-            // Ajustar secciones si el backend las tiene
+          if (data.sections && Array.isArray(data.sections)) {
+            setSections(data.sections as any)
           }
         }
       } catch (err) {
@@ -76,9 +62,9 @@ export default function PlatformPage() {
     // Guardar localmente
     localStorage.setItem('bercario_profile', JSON.stringify(updatedProfile))
 
-    // Intentar sincronizar con backend
+    // Sincronizar con backend
     const token = localStorage.getItem('bercario_token')
-    if (token && token !== 'demo-token-12345') {
+    if (token) {
       try {
         await profileService.updateProfile(updatedProfile)
       } catch (err) {
@@ -93,9 +79,9 @@ export default function PlatformPage() {
     // Guardar localmente
     localStorage.setItem('bercario_sections', JSON.stringify(updatedSections))
 
-    // Intentar sincronizar con backend
+    // Sincronizar con backend
     const token = localStorage.getItem('bercario_token')
-    if (token && token !== 'demo-token-12345') {
+    if (token) {
       try {
         await profileService.updateSections(updatedSections)
       } catch (err) {

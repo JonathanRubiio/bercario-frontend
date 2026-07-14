@@ -24,9 +24,20 @@ export default function BusinessLandingPage({
   useEffect(() => {
     async function fetchLanding() {
       try {
-        // En modo demo o local, si coincide con el slug por defecto,
-        // primero revisamos si hay algo editado en localStorage para esta sesión.
-        if (slug === 'calzado-la-frontera') {
+        // Intentamos conectar con la API real
+        const data = await profileService.getProfileBySlug(slug)
+        if (data) {
+          setProfile(data)
+          if (data.sections && Array.isArray(data.sections)) {
+            setSections(data.sections as any)
+          }
+        } else {
+          setError('El negocio solicitado no existe.')
+        }
+      } catch (err) {
+        console.warn('Fallo al cargar perfil desde el backend, intentando mock:', err)
+        // Fallback a localStorage/mock si es el slug demo
+        if (slug === 'calzado-la-frontera' || slug === 'demo') {
           const cachedProfile = localStorage.getItem('bercario_profile')
           const cachedSections = localStorage.getItem('bercario_sections')
 
@@ -39,23 +50,6 @@ export default function BusinessLandingPage({
           if (cachedSections) {
             setSections(JSON.parse(cachedSections))
           }
-          setLoading(false)
-          return
-        }
-
-        // De lo contrario, intentamos conectar con la API real
-        const data = await profileService.getProfileBySlug(slug)
-        if (data) {
-          setProfile(data)
-          // Secciones pueden cargarse desde el backend si las provee
-        } else {
-          setError('El negocio solicitado no existe.')
-        }
-      } catch (err) {
-        console.warn('Fallo al cargar perfil desde el backend, intentando mock:', err)
-        // Fallback a mock si falla la conexión y es el slug demo
-        if (slug === 'calzado-la-frontera' || slug === 'demo') {
-          setProfile(initialProfile)
         } else {
           setError('No pudimos conectar con el servidor para cargar este negocio.')
         }

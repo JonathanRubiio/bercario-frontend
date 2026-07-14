@@ -45,9 +45,12 @@ const values = [
 
 import styles from './landing-page.module.scss'
 import { useRouter } from 'next/navigation'
+import { leadsService } from '@/lib/api/services/leads'
 
 export function LandingPage() {
   const [sent, setSent] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const router = useRouter()
 
   return (
@@ -204,9 +207,32 @@ export function LandingPage() {
           </div>
 
           <form
-            onSubmit={(e) => {
+            onSubmit={async (e) => {
               e.preventDefault()
-              setSent(true)
+              setErrorMsg(null)
+              setSubmitting(true)
+              const elements = e.currentTarget.elements as any
+              const businessName = elements.empresa.value
+              const email = elements.correo.value
+              const city = elements.ciudad.value
+              const message = elements.mensaje.value
+              const website = elements.website.value
+
+              try {
+                await leadsService.createLead({
+                  businessName,
+                  email,
+                  city,
+                  message,
+                  website,
+                })
+                setSent(true)
+              } catch (err: any) {
+                console.error(err)
+                setErrorMsg(err?.message || 'Error al enviar la solicitud. Intenta de nuevo.')
+              } finally {
+                setSubmitting(false)
+              }
             }}
             className={styles.contactForm}
           >
@@ -250,8 +276,20 @@ export function LandingPage() {
                     placeholder="Cuéntanos sobre tu negocio..."
                   />
                 </div>
-                <Button type="submit" className="mt-1 w-full rounded-full">
-                  Enviar solicitud
+                {/* Honeypot field (hidden from users to catch spam bots) */}
+                <div style={{ display: 'none' }}>
+                  <Label htmlFor="website">Website</Label>
+                  <Input id="website" tabIndex={-1} autoComplete="off" />
+                </div>
+
+                {errorMsg && (
+                  <div className="col-span-full rounded-lg bg-destructive/10 p-3 text-xs text-destructive">
+                    {errorMsg}
+                  </div>
+                )}
+
+                <Button type="submit" className="mt-1 w-full rounded-full" disabled={submitting}>
+                  {submitting ? 'Enviando...' : 'Enviar solicitud'}
                 </Button>
               </div>
             )}

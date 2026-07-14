@@ -9,13 +9,16 @@ import {
   LogOut,
   Lock,
   Bell,
+  Inbox,
 } from 'lucide-react'
 import { ProfileView } from '@/components/platform/profile-view'
 import { LandingConfig } from '@/components/platform/landing-config'
+import { AdminLeadsView } from './admin-leads-view'
+import { useAuth } from '@/context/auth-context'
 import type { BusinessProfile, LandingSection } from '@/lib/bercario-data'
 import styles from './platform-shell.module.scss'
 
-type Tab = 'inicio' | 'perfil' | 'landing'
+type Tab = 'inicio' | 'perfil' | 'landing' | 'solicitudes'
 
 export function PlatformShell({
   profile,
@@ -33,17 +36,22 @@ export function PlatformShell({
   onPreview: () => void
 }) {
   const [tab, setTab] = useState<Tab>('perfil')
+  const { user } = useAuth()
 
   const navItems: {
     id: Tab
     label: string
-    icon: typeof Home
+    icon: any
     disabled?: boolean
   }[] = [
     { id: 'inicio', label: 'Inicio', icon: Home, disabled: true },
     { id: 'perfil', label: 'Mi Perfil', icon: User },
     { id: 'landing', label: 'Configurar Landing', icon: LayoutTemplate },
   ]
+
+  if (user?.role === 'admin') {
+    navItems.push({ id: 'solicitudes', label: 'Solicitudes', icon: Inbox })
+  }
 
   return (
     <div className={styles.platformShell}>
@@ -133,6 +141,9 @@ export function PlatformShell({
             onSectionsChange={onSectionsChange}
             onPreview={onPreview}
           />
+        )}
+        {tab === 'solicitudes' && user?.role === 'admin' && (
+          <AdminLeadsView />
         )}
       </main>
     </div>
