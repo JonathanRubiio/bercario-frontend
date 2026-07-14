@@ -15,6 +15,7 @@ import { ProfileView } from '@/components/platform/profile-view'
 import { LandingConfig } from '@/components/platform/landing-config'
 import { AdminLeadsView } from './admin-leads-view'
 import { useAuth } from '@/context/auth-context'
+import { useAnime, useAnimeImperative } from '@/hooks/use-anime'
 import type { BusinessProfile, LandingSection } from '@/lib/bercario-data'
 import styles from './platform-shell.module.scss'
 
@@ -37,6 +38,25 @@ export function PlatformShell({
 }) {
   const [tab, setTab] = useState<Tab>('perfil')
   const { user } = useAuth()
+
+  // Animación declarativa para la transición de pestañas
+  const mainContentRef = useAnime({
+    opacity: [0, 1],
+    translateY: [15, 0],
+    duration: 300,
+    easing: 'easeOutQuad',
+  }, [tab])
+
+  // Animación imperativa para la campana de notificaciones
+  const [bellRef, animateBell] = useAnimeImperative()
+
+  const handleBellHover = () => {
+    animateBell({
+      rotate: [-15, 12, -10, 8, -4, 0],
+      duration: 500,
+      easing: 'easeInOutQuad',
+    })
+  }
 
   const navItems: {
     id: Tab
@@ -88,7 +108,11 @@ export function PlatformShell({
           </div>
 
           <div className={styles.rightSection}>
-            <button className={styles.bellBtn}>
+            <button
+              ref={bellRef}
+              onMouseEnter={handleBellHover}
+              className={styles.bellBtn}
+            >
               <Bell className="h-4 w-4" />
               <span className={styles.bellDot} />
             </button>
@@ -127,7 +151,7 @@ export function PlatformShell({
         </nav>
       </header>
 
-      <main className={styles.mainContent}>
+      <main ref={mainContentRef} className={styles.mainContent}>
         {tab === 'perfil' && (
           <ProfileView
             profile={profile}

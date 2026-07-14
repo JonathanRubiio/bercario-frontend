@@ -46,12 +46,21 @@ const values = [
 import styles from './landing-page.module.scss'
 import { useRouter } from 'next/navigation'
 import { leadsService } from '@/lib/api/services/leads'
+import { useReveal } from '@/hooks/use-reveal'
 
 export function LandingPage() {
   const [sent, setSent] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const router = useRouter()
+
+  // Hook observers for sections
+  const [heroTextRef, heroTextVisible] = useReveal(0.05)
+  const [heroImgRef, heroImgVisible] = useReveal(0.05)
+  const [statsRef, statsVisible] = useReveal(0.05)
+  const [projectHeaderRef, projectHeaderVisible] = useReveal(0.05)
+  const [projectGridRef, projectGridVisible] = useReveal(0.05)
+  const [contactRef, contactVisible] = useReveal(0.05)
 
   return (
     <main className={styles.landingPage}>
@@ -78,7 +87,10 @@ export function LandingPage() {
       {/* Hero */}
       <section id="mision" className={styles.heroSection}>
         <div className={styles.heroGrid}>
-          <div>
+          <div
+            ref={heroTextRef}
+            className={`${styles.reveal} ${heroTextVisible ? styles.revealActive : ''}`}
+          >
             <Badge
               variant="secondary"
               className="mb-5 rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium text-muted-foreground"
@@ -112,7 +124,12 @@ export function LandingPage() {
             </div>
           </div>
 
-          <div className={styles.heroImageWrapper}>
+          <div
+            ref={heroImgRef}
+            className={`${styles.heroImageWrapper} ${styles.revealRight} ${
+              heroImgVisible ? styles.revealActive : ''
+            }`}
+          >
             <div className={styles.heroImageCard}>
               <img
                 src="/images/hero.png"
@@ -120,7 +137,7 @@ export function LandingPage() {
                 className="h-full w-full object-cover"
               />
             </div>
-            <div className={styles.heroImageBadge}>
+            <div className={`${styles.heroImageBadge} ${styles.float}`}>
               <p className="text-xs text-muted-foreground">En vivo</p>
               <p className="text-sm font-medium text-foreground">
                 347 negocios activos hoy
@@ -130,11 +147,22 @@ export function LandingPage() {
         </div>
 
         {/* Stats */}
-        <div className={styles.statsContainer}>
-          {stats.map((s) => (
+        <div
+          ref={statsRef}
+          className={`${styles.statsContainer} ${styles.reveal} ${
+            statsVisible ? styles.revealActive : ''
+          }`}
+        >
+          {stats.map((s, index) => (
             <Card
               key={s.label}
-              className="flex items-center gap-4 border-border p-5 shadow-none"
+              className={`flex items-center gap-4 border-border p-5 shadow-none ${
+                index === 0
+                  ? styles.revealDelay1
+                  : index === 1
+                    ? styles.revealDelay2
+                    : styles.revealDelay3
+              }`}
             >
               <span className="flex h-11 w-11 items-center justify-center rounded-full bg-accent text-accent-foreground">
                 <s.icon className="h-5 w-5" />
@@ -152,7 +180,12 @@ export function LandingPage() {
 
       {/* About / project */}
       <section id="proyecto" className={styles.projectSection}>
-        <div className={styles.sectionHeader}>
+        <div
+          ref={projectHeaderRef}
+          className={`${styles.sectionHeader} ${styles.reveal} ${
+            projectHeaderVisible ? styles.revealActive : ''
+          }`}
+        >
           <h2 className={styles.sectionTitle}>
             Un proyecto que crece por etapas
           </h2>
@@ -163,9 +196,23 @@ export function LandingPage() {
           </p>
         </div>
 
-        <div className={styles.projectGrid}>
-          {values.map((v) => (
-            <Card key={v.title} className="border-border p-6 shadow-none">
+        <div
+          ref={projectGridRef}
+          className={`${styles.projectGrid} ${styles.reveal} ${
+            projectGridVisible ? styles.revealActive : ''
+          }`}
+        >
+          {values.map((v, index) => (
+            <Card
+              key={v.title}
+              className={`border-border p-6 shadow-none ${
+                index === 0
+                  ? styles.revealDelay1
+                  : index === 1
+                    ? styles.revealDelay2
+                    : styles.revealDelay3
+              }`}
+            >
               <span className="flex h-11 w-11 items-center justify-center rounded-full bg-secondary text-foreground">
                 <v.icon className="h-5 w-5" />
               </span>
@@ -181,7 +228,13 @@ export function LandingPage() {
       </section>
 
       {/* Contact */}
-      <section id="contacto" className={styles.contactSection}>
+      <section
+        id="contacto"
+        ref={contactRef}
+        className={`${styles.contactSection} ${styles.reveal} ${
+          contactVisible ? styles.revealActive : ''
+        }`}
+      >
         <Card className={styles.contactCard}>
           <div>
             <h2 className={styles.sectionTitle}>
