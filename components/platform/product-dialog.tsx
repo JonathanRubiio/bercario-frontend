@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 import { availableTags, type Product } from '@/lib/bercario-data'
 import { uploadService } from '../../lib/api/services/upload'
+import { animateSelector } from '../../hooks/use-anime'
 
 const emptyProduct: Product = {
   id: '',
@@ -71,6 +72,20 @@ export function ProductDialog({
     })
   }, [product, open])
 
+  useEffect(() => {
+    if (open) {
+      setTimeout(() => {
+        animateSelector('#product-dialog-inner', {
+          opacity: [0, 1],
+          scale: [0.94, 1],
+          translateY: [12, 0],
+          duration: 450,
+          easing: 'easeOutBack',
+        })
+      }, 50)
+    }
+  }, [open])
+
   function toggleTag(tag: string) {
     setDraft((d) => {
       const currentTags = d.tags || []
@@ -86,14 +101,15 @@ export function ProductDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="font-serif">
-            {product ? 'Editar producto' : 'Agregar producto'}
-          </DialogTitle>
-          <DialogDescription>
-            Completa la información que verán tus clientes en el catálogo.
-          </DialogDescription>
-        </DialogHeader>
+        <div id="product-dialog-inner" className="opacity-0 space-y-4">
+          <DialogHeader>
+            <DialogTitle className="font-serif">
+              {product ? 'Editar producto' : 'Agregar producto'}
+            </DialogTitle>
+            <DialogDescription>
+              Completa la información que verán tus clientes en el catálogo.
+            </DialogDescription>
+          </DialogHeader>
 
         <div className="grid gap-4 py-2">
           <div className="grid gap-1.5">
@@ -229,6 +245,7 @@ export function ProductDialog({
             Guardar producto
           </Button>
         </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   )

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,6 +12,7 @@ import { IncomingBadge } from '@/components/platform/incoming-badge'
 import { cn } from '@/lib/utils'
 import type { BusinessProfile, Product } from '@/lib/bercario-data'
 import { uploadService } from '../../lib/api/services/upload'
+import { animateSelector } from '../../hooks/use-anime'
 import {
   Pencil,
   Check,
@@ -102,6 +103,27 @@ export function ProfileView({
   const [uploadingBanner, setUploadingBanner] = useState(false)
   const [uploadingLogo, setUploadingLogo] = useState(false)
 
+  useEffect(() => {
+    // Animación de entrada para las tarjetas de la columna izquierda
+    animateSelector('.animate-profile-card', {
+      opacity: [0, 1],
+      translateY: [20, 0],
+      delay: (_, i) => i * 80,
+      duration: 600,
+      easing: 'easeOutExpo',
+    })
+
+    // Animación de entrada para el título del catálogo y tarjetas de producto
+    animateSelector('.animate-catalog-item', {
+      opacity: [0, 1],
+      scale: [0.97, 1],
+      translateY: [15, 0],
+      delay: (_, i) => i * 50,
+      duration: 500,
+      easing: 'easeOutExpo',
+    })
+  }, [])
+
   async function handleBannerUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -166,7 +188,7 @@ export function ProfileView({
     <div className="grid gap-6 lg:grid-cols-[340px_1fr]">
       {/* Left column */}
       <div className="space-y-6">
-        <Card className="overflow-hidden border-border p-0 shadow-none">
+        <Card className="overflow-hidden border-border p-0 shadow-none animate-profile-card opacity-0">
           <div className="relative h-28 bg-secondary group">
             <img
               src={profile.banner || '/images/company-banner.png'}
@@ -245,7 +267,7 @@ export function ProfileView({
           </div>
         </Card>
 
-        <Card className="border-border p-5 shadow-none">
+        <Card className="border-border p-5 shadow-none animate-profile-card opacity-0">
           <h3 className="font-serif text-sm font-semibold text-foreground">
             Quiénes somos
           </h3>
@@ -259,7 +281,7 @@ export function ProfileView({
           />
         </Card>
 
-        <Card className="border-border p-5 shadow-none">
+        <Card className="border-border p-5 shadow-none animate-profile-card opacity-0">
           <h3 className="font-serif text-sm font-semibold text-foreground">
             Contacto
           </h3>
@@ -296,7 +318,7 @@ export function ProfileView({
         </Card>
 
         {/* Phase 2 disabled action */}
-        <Card className="relative overflow-hidden border-border p-5 shadow-none">
+        <Card className="relative overflow-hidden border-border p-5 shadow-none animate-profile-card opacity-0">
           <div className="flex items-center gap-3 opacity-40">
             <span className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary">
               <BarChart3 className="h-5 w-5" />
@@ -318,7 +340,7 @@ export function ProfileView({
 
       {/* Right column: catalog */}
       <div>
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-4 flex items-center justify-between animate-catalog-item opacity-0">
           <div>
             <h2 className="font-serif text-xl font-semibold text-foreground">
               Catálogo de productos
@@ -343,7 +365,7 @@ export function ProfileView({
           {profile.products.map((product) => (
             <Card
               key={product.id}
-              className="group overflow-hidden border-border p-0 shadow-none"
+              className="group overflow-hidden border-border p-0 shadow-none animate-catalog-item opacity-0"
             >
               <div className="relative aspect-square bg-secondary">
                 <img
@@ -407,7 +429,7 @@ export function ProfileView({
                 setEditingProduct(null)
                 setDialogOpen(true)
               }}
-              className="flex min-h-[220px] flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+              className="flex min-h-[220px] flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground animate-catalog-item opacity-0"
             >
               <span className="flex h-11 w-11 items-center justify-center rounded-full bg-secondary">
                 <Plus className="h-5 w-5" />

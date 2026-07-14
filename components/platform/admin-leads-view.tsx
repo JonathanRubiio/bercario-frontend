@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { leadsService, type Lead } from '@/lib/api/services/leads'
 import { CheckCircle2, XCircle, Clock, MapPin, Mail, MessageSquare, ShieldAlert, Sparkles, Loader2 } from 'lucide-react'
+import { animateSelector } from '../../hooks/use-anime'
 
 export function AdminLeadsView() {
   const [leads, setLeads] = useState<Lead[]>([])
@@ -17,6 +18,18 @@ export function AdminLeadsView() {
   useEffect(() => {
     fetchLeads()
   }, [])
+
+  useEffect(() => {
+    if (!loading && leads.length > 0) {
+      animateSelector('.animate-lead-card', {
+        opacity: [0, 1],
+        translateY: [20, 0],
+        delay: (_, i) => i * 60,
+        duration: 500,
+        easing: 'easeOutExpo',
+      })
+    }
+  }, [loading, leads.length])
 
   async function fetchLeads() {
     try {
@@ -38,6 +51,14 @@ export function AdminLeadsView() {
       setSuccessInfo(null)
       await leadsService.updateLeadStatus(id, status)
       
+      // Animar el cambio antes/durante la actualización de estado
+      animateSelector(`#lead-card-${id}`, {
+        scale: [1, 0.97, 1.01, 1],
+        borderColor: status === 'ACCEPTED' ? ['rgba(226, 232, 240, 1)', '#10b981', 'rgba(226, 232, 240, 1)'] : ['rgba(226, 232, 240, 1)', '#ef4444', 'rgba(226, 232, 240, 1)'],
+        duration: 800,
+        easing: 'easeInOutBack'
+      })
+
       // Actualizar estado local
       setLeads((prev) =>
         prev.map((l) => (l.id === id ? { ...l, status } : l))
@@ -118,7 +139,7 @@ export function AdminLeadsView() {
             })
 
             return (
-              <Card key={lead.id} className="p-6 shadow-sm border-border">
+              <Card key={lead.id} id={`lead-card-${lead.id}`} className="p-6 shadow-sm border-border animate-lead-card opacity-0">
                 <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                   <div className="space-y-3 flex-1">
                     <div className="flex flex-wrap items-center gap-2.5">

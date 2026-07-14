@@ -58,6 +58,7 @@ export function LandingPage() {
   const [heroTextRef, heroTextVisible] = useReveal(0.05)
   const [heroImgRef, heroImgVisible] = useReveal(0.05)
   const [statsRef, statsVisible] = useReveal(0.05)
+  const [aboutRef, aboutVisible] = useReveal(0.05)
   const [projectHeaderRef, projectHeaderVisible] = useReveal(0.05)
   const [projectGridRef, projectGridVisible] = useReveal(0.05)
   const [contactRef, contactVisible] = useReveal(0.05)
@@ -70,6 +71,9 @@ export function LandingPage() {
           <nav className={styles.desktopNav}>
             <a href="#mision" className={styles.navLink}>
               Misión
+            </a>
+            <a href="#quienes-somos" className={styles.navLink}>
+              Quiénes somos
             </a>
             <a href="#proyecto" className={styles.navLink}>
               El proyecto
@@ -175,6 +179,46 @@ export function LandingPage() {
               </div>
             </Card>
           ))}
+        </div>
+      </section>
+
+      {/* Quiénes somos */}
+      <section
+        id="quienes-somos"
+        ref={aboutRef}
+        className={`${styles.aboutSection} ${styles.reveal} ${
+          aboutVisible ? styles.revealActive : ''
+        }`}
+      >
+        <div className={styles.aboutContainer}>
+          <div className={styles.aboutContent}>
+            <Badge
+              variant="secondary"
+              className="mb-4 rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium text-muted-foreground"
+            >
+              Quiénes somos
+            </Badge>
+            <h2 className={styles.sectionTitle}>
+              Impulsando el comercio del Norte de Santander
+            </h2>
+            <p className={styles.aboutText}>
+              Berçário nació en el corazón de nuestra región con un propósito claro: ser el nido que acoge, fortalece y proyecta a los productores y mayoristas locales hacia nuevos mercados en toda Colombia.
+            </p>
+            <p className={styles.aboutText}>
+              Creemos en la berraquera de nuestra gente y en que la tecnología debe ser una aliada, no una barrera. Por eso, diseñamos una plataforma ágil que permite a los comerciantes crear su catálogo en minutos, obtener un enlace profesional propio y prepararse para vender a nivel nacional sin complicaciones técnicas.
+            </p>
+          </div>
+          <div className={styles.aboutVisual}>
+            <div className={styles.aboutCard}>
+              <h4 className="font-serif text-lg font-semibold text-foreground mb-2 flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                Nuestra Promesa
+              </h4>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Acompañar a cada negocio paso a paso en su crecimiento digital. Desde su primer catálogo en línea hasta la automatización de sus ventas y analítica de datos, con soporte cercano y local.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 

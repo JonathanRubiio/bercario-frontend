@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { BrandLogo } from '@/components/brand-logo'
 import {
   Home,
@@ -15,7 +15,7 @@ import { ProfileView } from '@/components/platform/profile-view'
 import { LandingConfig } from '@/components/platform/landing-config'
 import { AdminLeadsView } from './admin-leads-view'
 import { useAuth } from '@/context/auth-context'
-import { useAnime, useAnimeImperative } from '../../hooks/use-anime'
+import { useAnime, useAnimeImperative, animateSelector } from '../../hooks/use-anime'
 import type { BusinessProfile, LandingSection } from '@/lib/bercario-data'
 import styles from './platform-shell.module.scss'
 
@@ -58,6 +58,17 @@ export function PlatformShell({
     })
   }
 
+  useEffect(() => {
+    // Animación de entrada de los elementos de navegación superior
+    animateSelector('.animate-nav-item', {
+      opacity: [0, 1],
+      translateY: [-12, 0],
+      delay: (_, i) => i * 60,
+      duration: 500,
+      easing: 'easeOutExpo',
+    })
+  }, [])
+
   const navItems: {
     id: Tab
     label: string
@@ -79,8 +90,10 @@ export function PlatformShell({
       <header className={styles.header}>
         <div className={styles.headerContainer}>
           <div className={styles.navSection}>
-            <BrandLogo />
-            <nav className={styles.desktopNav}>
+            <div className="animate-nav-item opacity-0">
+              <BrandLogo />
+            </div>
+            <nav className={`${styles.desktopNav} animate-nav-item opacity-0`}>
               {navItems.map((item) => {
                 const isActive = tab === item.id
                 return (
@@ -111,14 +124,14 @@ export function PlatformShell({
             <button
               ref={bellRef}
               onMouseEnter={handleBellHover}
-              className={styles.bellBtn}
+              className={`${styles.bellBtn} animate-nav-item opacity-0`}
             >
               <Bell className="h-4 w-4" />
               <span className={styles.bellDot} />
             </button>
             <button
               onClick={onLogout}
-              className={styles.logoutBtn}
+              className={`${styles.logoutBtn} animate-nav-item opacity-0`}
             >
               <LogOut className="h-4 w-4" />
               <span className={styles.logoutText}>Cerrar sesión</span>
@@ -127,7 +140,7 @@ export function PlatformShell({
         </div>
 
         {/* Mobile nav */}
-        <nav className={styles.mobileNav}>
+        <nav className={`${styles.mobileNav} animate-nav-item opacity-0`}>
           {navItems.map((item) => {
             const isActive = tab === item.id
             return (

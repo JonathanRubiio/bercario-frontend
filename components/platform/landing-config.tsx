@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { IncomingBadge } from '@/components/platform/incoming-badge'
 import { cn } from '@/lib/utils'
 import type { LandingSection } from '@/lib/bercario-data'
+import { animateSelector } from '../../hooks/use-anime'
 import {
   GripVertical,
   ArrowUp,
@@ -44,6 +45,26 @@ export function LandingConfig({
 }) {
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [palette, setPalette] = useState('nido')
+
+  useEffect(() => {
+    // Animación de entrada para las secciones de la landing
+    animateSelector('.animate-section-card', {
+      opacity: [0, 1],
+      translateX: [-20, 0],
+      delay: (_, i) => i * 60,
+      duration: 500,
+      easing: 'easeOutExpo',
+    })
+
+    // Animación de entrada para los elementos del sidebar
+    animateSelector('.animate-sidebar-card', {
+      opacity: [0, 1],
+      translateY: [15, 0],
+      delay: (_, i) => i * 80,
+      duration: 550,
+      easing: 'easeOutExpo',
+    })
+  }, [])
 
   function move(from: number, to: number) {
     if (to < 0 || to >= sections.length) return
@@ -88,7 +109,7 @@ export function LandingConfig({
                 onDrop={() => handleDrop(index)}
                 onDragEnd={() => setDragIndex(null)}
                 className={cn(
-                  'flex items-center gap-3 rounded-xl border bg-card p-4 transition-all',
+                  'flex items-center gap-3 rounded-xl border bg-card p-4 transition-all animate-section-card opacity-0',
                   dragIndex === index
                     ? 'border-primary opacity-60 shadow-md'
                     : 'border-border shadow-none hover:border-primary/40',
@@ -132,7 +153,7 @@ export function LandingConfig({
 
       {/* Sidebar: palette + phase 2 */}
       <div className="space-y-6">
-        <Card className="border-border p-5 shadow-none">
+        <Card className="border-border p-5 shadow-none animate-sidebar-card opacity-0">
           <div className="flex items-center gap-2">
             <Palette className="h-4 w-4 text-muted-foreground" />
             <h3 className="font-serif text-sm font-semibold text-foreground">
@@ -171,7 +192,7 @@ export function LandingConfig({
           </div>
         </Card>
 
-        <Card className="relative border-border p-5 shadow-none">
+        <Card className="relative border-border p-5 shadow-none animate-sidebar-card opacity-0">
           <h3 className="font-serif text-sm font-semibold text-foreground">
             Dominio personalizado
           </h3>
