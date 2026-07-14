@@ -4,9 +4,10 @@ export const uploadService = {
   /**
    * Sube una imagen al servidor y retorna su URL en S3/MinIO
    */
-  uploadImage: async (file: File): Promise<{ url: string }> => {
+  uploadImage: async (file: File, type?: string): Promise<{ url: string }> => {
     const formData = new FormData()
     formData.append('file', file)
-    return apiClient.post('/api/upload', formData)
+    const path = type ? `/api/upload?type=${encodeURIComponent(type)}` : '/api/upload'
+    return apiClient.post(path, formData)
   },
 }

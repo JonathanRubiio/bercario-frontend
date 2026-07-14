@@ -12,7 +12,7 @@ import { IncomingBadge } from '@/components/platform/incoming-badge'
 import { cn } from '@/lib/utils'
 import type { BusinessProfile, Product } from '@/lib/bercario-data'
 import { uploadService } from '../../lib/api/services/upload'
-import { animateSelector } from '../../hooks/use-anime'
+import { useAnime, animateSelector } from '../../hooks/use-anime'
 import {
   Pencil,
   Check,
@@ -25,6 +25,7 @@ import {
   Eye,
   Trash2,
   BarChart3,
+  Sparkles,
 } from 'lucide-react'
 
 function EditableText({
@@ -102,6 +103,17 @@ export function ProfileView({
   const [copied, setCopied] = useState(false)
   const [uploadingBanner, setUploadingBanner] = useState(false)
   const [uploadingLogo, setUploadingLogo] = useState(false)
+
+  const badgeIconRef = useAnime(
+    {
+      scale: [1, 1.03, 1],
+      opacity: [0.8, 1, 0.8],
+      duration: 3000,
+      loop: true,
+      easing: 'easeInOutSine',
+    },
+    []
+  )
 
   useEffect(() => {
     // Animación de entrada para las tarjetas de la columna izquierda
@@ -236,6 +248,16 @@ export function ProfileView({
                 onChange={(v) => update('tagline', v)}
                 className="text-sm text-muted-foreground"
               />
+            </div>
+
+            {/* Insignia de Membresía */}
+            <div className="mt-3 flex items-center gap-1.5 bg-primary/5 border border-primary/10 rounded-full px-2.5 py-1 w-fit animate-profile-card opacity-0">
+              <div ref={badgeIconRef} className="text-primary flex items-center justify-center">
+                <Sparkles className="h-3.5 w-3.5 fill-current" />
+              </div>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-primary">
+                Plan {(profile as any).user?.membershipPackage?.name || 'Free'}
+              </span>
             </div>
 
             <Button
