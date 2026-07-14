@@ -1,0 +1,30 @@
+services:
+  bercario_web_local:
+    platform: linux/arm64
+    container_name: bercario_web_local
+    hostname: bercario_web_local
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      target: local
+    environment:
+      - HTTP_PROXY=
+      - HTTPS_PROXY=
+      - http_proxy=
+      - https_proxy=
+      - ALL_PROXY=
+      - all_proxy=
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    ports:
+      - 3000:3000
+    networks:
+      - bercario_web_network
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: pnpm run dev
+ 
+networks:
+  bercario_web_network:
+    driver: bridge

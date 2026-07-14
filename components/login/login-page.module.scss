@@ -1,0 +1,115 @@
+.loginPage {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  background-color: rgba(var(--secondary), 0.4);
+}
+
+.backButtonContainer {
+  padding: 1.25rem;
+}
+
+.backButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+  transition: color 0.2s;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--foreground);
+  }
+}
+
+.loginContent {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+  padding-bottom: 4rem;
+}
+
+.loginWrapper {
+  width: 100%;
+  max-width: 24rem;
+}
+
+.header {
+  margin-bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.title {
+  margin-top: 1.25rem;
+  font-family: var(--font-serif), serif;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  color: var(--foreground);
+}
+
+.subtitle {
+  margin-top: 0.375rem;
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.card {
+  border-radius: 1rem;
+  border: 1px solid var(--border);
+  background-color: var(--card);
+  padding: 1.5rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.form {
+  display: grid;
+  gap: 1rem;
+}
+
+.formField {
+  display: grid;
+  gap: 0.375rem;
+}
+
+.fieldHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.forgotText {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+
+.errorAlert {
+  border-radius: 0.5rem;
+  background-color: rgba(220, 38, 38, 0.1);
+  padding: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--destructive);
+}
+
+.submitBtn {
+  margin-top: 0.5rem;
+  width: 100%;
+  border-radius: 9999px;
+}
+
+.demoText {
+  margin-top: 1.5rem;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
