@@ -87,7 +87,7 @@ export function ProductDialog({
         animateSelector('.animate-form-field', {
           opacity: [0, 1],
           translateY: [15, 0],
-          delay: (_, i) => i * 65,
+          delay: (_, i) => (i ?? 0) * 65,
           duration: 500,
           easing: 'easeOutQuad',
         })

@@ -35,6 +35,8 @@ export type BusinessProfile = {
   testimonials: Testimonial[]
   faqs: Faq[]
   gallery: string[]
+  sections?: LandingSection[]
+  landingConfig?: any[]
 }
 
 export type SectionType =

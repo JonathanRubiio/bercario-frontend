@@ -70,7 +70,7 @@ export function LandingConfig({
     animateSelector('.animate-section-card', {
       opacity: [0, 1],
       translateX: [-20, 0],
-      delay: (_, i) => i * 60,
+      delay: (_, i) => (i ?? 0) * 60,
       duration: 500,
       easing: 'easeOutExpo',
     })
@@ -79,7 +79,7 @@ export function LandingConfig({
     animateSelector('.animate-sidebar-card', {
       opacity: [0, 1],
       translateY: [15, 0],
-      delay: (_, i) => i * 80,
+      delay: (_, i) => (i ?? 0) * 80,
       duration: 550,
       easing: 'easeOutExpo',
     })

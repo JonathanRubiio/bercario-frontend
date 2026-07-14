@@ -24,7 +24,7 @@ export function AdminLeadsView() {
       animateSelector('.animate-lead-card', {
         opacity: [0, 1],
         translateY: [20, 0],
-        delay: (_, i) => i * 60,
+        delay: (_, i) => (i ?? 0) * 60,
         duration: 500,
         easing: 'easeOutExpo',
       })

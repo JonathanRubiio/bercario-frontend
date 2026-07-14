@@ -63,7 +63,7 @@ export function PlatformShell({
     animateSelector('.animate-nav-item', {
       opacity: [0, 1],
       translateY: [-12, 0],
-      delay: (_, i) => i * 60,
+      delay: (_, i) => (i ?? 0) * 60,
       duration: 500,
       easing: 'easeOutExpo',
     })

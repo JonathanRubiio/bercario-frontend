@@ -120,7 +120,7 @@ export function ProfileView({
     animateSelector('.animate-profile-card', {
       opacity: [0, 1],
       translateY: [20, 0],
-      delay: (_, i) => i * 80,
+      delay: (_, i) => (i ?? 0) * 80,
       duration: 600,
       easing: 'easeOutExpo',
     })
@@ -130,7 +130,7 @@ export function ProfileView({
       opacity: [0, 1],
       scale: [0.97, 1],
       translateY: [15, 0],
-      delay: (_, i) => i * 50,
+      delay: (_, i) => (i ?? 0) * 50,
       duration: 500,
       easing: 'easeOutExpo',
     })

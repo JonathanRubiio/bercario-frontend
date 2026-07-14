@@ -50,8 +50,10 @@ export function useAnimeImperative() {
     return new Promise<any>((resolve) => {
       animationRef.current = animate(target, {
         ...params,
-        complete: (anim) => {
-          if (params.complete) params.complete(anim)
+        complete: (anim: any) => {
+          if (typeof params.complete === 'function') {
+            (params.complete as any)(anim)
+          }
           resolve(anim)
         },
       } as any)
