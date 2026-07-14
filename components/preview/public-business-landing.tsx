@@ -1,6 +1,7 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import type { BusinessProfile, LandingSection } from '@/lib/bercario-data'
 import { Phone, Mail, MapPin, ShoppingBag } from 'lucide-react'
 
@@ -14,9 +15,12 @@ export function PublicBusinessLanding({
   return (
     <div className="w-full bg-background text-foreground">
       <div className="mx-auto max-w-4xl">
-        {sections.map((section) => (
-          <PreviewSection key={section.id} id={section.id} profile={profile} />
-        ))}
+        {sections
+          .filter((s) => s.visible)
+          .sort((a, b) => a.order - b.order)
+          .map((section) => (
+            <PreviewSection key={section.id} section={section} profile={profile} />
+          ))}
 
         <footer className="border-t border-border px-6 py-8 text-center text-xs text-muted-foreground">
           Sitio generado con Berçário · {profile.name}
@@ -27,13 +31,15 @@ export function PublicBusinessLanding({
 }
 
 function PreviewSection({
-  id,
+  section,
   profile,
 }: {
-  id: string
+  section: LandingSection
   profile: BusinessProfile
 }) {
-  if (id === 'banner') {
+  const { type, content } = section
+
+  if (type === 'HERO_BANNER') {
     return (
       <section className="relative">
         <div className="relative h-56 w-full overflow-hidden sm:h-72">
@@ -47,7 +53,10 @@ function PreviewSection({
           />
           <div className="absolute inset-0 bg-gradient-to-t from-foreground/50 to-transparent" />
         </div>
-        <div className="mx-auto -mt-12 flex max-w-3xl flex-col items-center px-6 text-center">
+        <div 
+          className="mx-auto -mt-12 flex max-w-3xl flex-col items-center px-6 py-8 text-center rounded-b-2xl border-x border-b border-border/40 shadow-sm"
+          style={{ backgroundColor: content?.backgroundColor || '#f5f3ef' }}
+        >
           <div className="h-20 w-20 overflow-hidden rounded-3xl border-4 border-background bg-card shadow-md">
             <img
               src={profile.logo || '/images/company-logo.png'}
@@ -59,44 +68,44 @@ function PreviewSection({
             />
           </div>
           <h1 className="mt-4 font-serif text-3xl font-semibold tracking-tight text-foreground">
-            {profile.name}
+            {content?.title || profile.name}
           </h1>
-          <p className="mt-1.5 text-muted-foreground">{profile.tagline}</p>
-          <Button className="mt-5 rounded-full">
-            <ShoppingBag className="mr-1 h-4 w-4" /> Ver catálogo
+          <p className="mt-1.5 text-muted-foreground">{content?.subtitle || profile.tagline}</p>
+          <Button className="mt-5 rounded-full shadow-sm">
+            <ShoppingBag className="mr-1 h-4 w-4" /> {content?.ctaText || 'Ver catálogo'}
           </Button>
         </div>
       </section>
     )
   }
 
-  if (id === 'about') {
+  if (type === 'ABOUT_US') {
     return (
       <section className="mx-auto max-w-3xl px-6 py-12">
         <h2 className="font-serif text-2xl font-semibold text-foreground">
-          Quiénes somos
+          {content?.title || 'Quiénes somos'}
         </h2>
-        <p className="mt-3 text-pretty leading-relaxed text-muted-foreground">
-          {profile.description}
+        <p className="mt-3 text-pretty leading-relaxed text-muted-foreground text-sm">
+          {content?.description || profile.description}
         </p>
       </section>
     )
   }
 
-  if (id === 'products') {
+  if (type === 'PRODUCTS_LIST') {
     return (
       <section className="mx-auto max-w-4xl px-6 py-12">
         <h2 className="font-serif text-2xl font-semibold text-foreground">
-          Catálogo
+          {content?.title || 'Catálogo'}
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          {profile.products.length} productos disponibles al por mayor
+          {content?.subtitle || `${profile.products?.length || 0} productos disponibles al por mayor`}
         </p>
         <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
           {profile.products.map((p) => (
             <div
               key={p.id}
-              className="group overflow-hidden rounded-xl border border-border bg-card"
+              className="group overflow-hidden rounded-xl border border-border bg-card shadow-sm"
             >
               <div className="relative aspect-square overflow-hidden bg-secondary">
                 <img
@@ -136,18 +145,18 @@ function PreviewSection({
     )
   }
 
-  if (id === 'contact') {
+  if (type === 'CONTACT_INFO') {
     return (
       <section className="border-t border-border bg-secondary/40 px-6 py-12">
         <div className="mx-auto max-w-3xl">
           <h2 className="font-serif text-2xl font-semibold text-foreground">
-            Contáctanos
+            {content?.title || 'Contáctanos'}
           </h2>
           <div className="mt-5 grid gap-3 sm:grid-cols-3">
             {[
-              { icon: Phone, value: profile.phone },
-              { icon: Mail, value: profile.email },
-              { icon: MapPin, value: profile.address },
+              { icon: Phone, value: content?.phone || profile.phone },
+              { icon: Mail, value: content?.email || profile.email },
+              { icon: MapPin, value: content?.address || profile.address },
             ].map((c, i) => (
               <div
                 key={i}
@@ -158,6 +167,67 @@ function PreviewSection({
               </div>
             ))}
           </div>
+        </div>
+      </section>
+    )
+  }
+
+  if (type === 'FEATURES_LIST') {
+    return (
+      <section className="mx-auto max-w-3xl px-6 py-12">
+        <h2 className="font-serif text-2xl font-semibold text-foreground mb-1">
+          {content?.title || 'Nuestros Servicios'}
+        </h2>
+        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+          {(content?.items || []).map((item: any, i: number) => (
+            <Card key={i} className="p-5 border border-border bg-card shadow-sm rounded-2xl transition-all hover:border-primary/20 hover:shadow-md">
+              <h3 className="text-sm font-semibold text-foreground mb-1.5">
+                {item.title}
+              </h3>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                {item.description}
+              </p>
+            </Card>
+          ))}
+        </div>
+      </section>
+    )
+  }
+
+  if (type === 'TESTIMONIALS') {
+    return (
+      <section className="mx-auto max-w-3xl px-6 py-12">
+        <h2 className="font-serif text-2xl font-semibold text-foreground mb-1">
+          {content?.title || 'Lo que dicen nuestros clientes'}
+        </h2>
+        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+          {(profile.testimonials || []).map((t: any) => (
+            <Card key={t.id} className="p-5 border border-border bg-card shadow-sm rounded-xl">
+              <p className="text-xs italic text-muted-foreground">"{t.quote || t.text}"</p>
+              <div className="mt-3 flex items-center justify-between text-[11px]">
+                <span className="font-semibold text-foreground">{t.name || t.author}</span>
+                <span className="text-muted-foreground">{t.role}</span>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </section>
+    )
+  }
+
+  if (type === 'FAQ') {
+    return (
+      <section className="mx-auto max-w-3xl px-6 py-12">
+        <h2 className="font-serif text-2xl font-semibold text-foreground mb-1">
+          {content?.title || 'Preguntas Frecuentes'}
+        </h2>
+        <div className="mt-6 space-y-4">
+          {(profile.faqs || []).map((f: any) => (
+            <div key={f.id} className="border-b border-border/60 pb-3">
+              <h4 className="text-sm font-semibold text-foreground">{f.question || f.q}</h4>
+              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{f.answer || f.a}</p>
+            </div>
+          ))}
         </div>
       </section>
     )

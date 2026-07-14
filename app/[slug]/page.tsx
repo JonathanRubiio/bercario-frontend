@@ -8,6 +8,7 @@ import {
   defaultSections,
   type BusinessProfile,
   type LandingSection,
+  migrateSections,
 } from '@/lib/bercario-data'
 
 export default function BusinessLandingPage({
@@ -28,9 +29,8 @@ export default function BusinessLandingPage({
         const data = await profileService.getProfileBySlug(slug)
         if (data) {
           setProfile(data)
-          if (data.sections && Array.isArray(data.sections)) {
-            setSections(data.sections as any)
-          }
+          const migrated = migrateSections(data.sections || [], data)
+          setSections(migrated)
         } else {
           setError('El negocio solicitado no existe.')
         }
@@ -41,14 +41,19 @@ export default function BusinessLandingPage({
           const cachedProfile = localStorage.getItem('bercario_profile')
           const cachedSections = localStorage.getItem('bercario_sections')
 
+          let activeProfile = initialProfile
           if (cachedProfile) {
-            setProfile(JSON.parse(cachedProfile))
+            activeProfile = JSON.parse(cachedProfile)
+            setProfile(activeProfile)
           } else {
             setProfile(initialProfile)
           }
 
           if (cachedSections) {
-            setSections(JSON.parse(cachedSections))
+            const parsed = JSON.parse(cachedSections)
+            setSections(migrateSections(parsed, activeProfile))
+          } else {
+            setSections(migrateSections([], activeProfile))
           }
         } else {
           setError('No pudimos conectar con el servidor para cargar este negocio.')

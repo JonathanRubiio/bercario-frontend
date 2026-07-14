@@ -12,7 +12,7 @@ import {
   Inbox,
 } from 'lucide-react'
 import { ProfileView } from '@/components/platform/profile-view'
-import { LandingConfig } from '@/components/platform/landing-config'
+import { LandingBuilderView } from './landing-builder-view'
 import { AdminLeadsView } from './admin-leads-view'
 import { useAuth } from '@/context/auth-context'
 import { useAnime, useAnimeImperative, animateSelector } from '../../hooks/use-anime'
@@ -173,11 +173,7 @@ export function PlatformShell({
           />
         )}
         {tab === 'landing' && (
-          <LandingConfig
-            sections={sections}
-            onSectionsChange={onSectionsChange}
-            onPreview={onPreview}
-          />
+          <LandingBuilderView />
         )}
         {tab === 'solicitudes' && user?.role === 'admin' && (
           <AdminLeadsView />

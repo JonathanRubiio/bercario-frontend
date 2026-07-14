@@ -11,6 +11,7 @@ import {
   defaultSections,
   type BusinessProfile,
   type LandingSection,
+  migrateSections,
 } from '@/lib/bercario-data'
 
 export default function PlatformPage() {
@@ -35,9 +36,8 @@ export default function PlatformPage() {
         const data = await profileService.getMyProfile()
         if (data) {
           setProfile(data)
-          if (data.sections && Array.isArray(data.sections)) {
-            setSections(data.sections as any)
-          }
+          const migrated = migrateSections(data.sections || [], data)
+          setSections(migrated)
         }
       } catch (err) {
         console.warn('No se pudo conectar al backend real, usando datos mock.', err)
@@ -45,8 +45,17 @@ export default function PlatformPage() {
         const cachedProfile = localStorage.getItem('bercario_profile')
         const cachedSections = localStorage.getItem('bercario_sections')
 
-        if (cachedProfile) setProfile(JSON.parse(cachedProfile))
-        if (cachedSections) setSections(JSON.parse(cachedSections))
+        let activeProfile = initialProfile
+        if (cachedProfile) {
+          activeProfile = JSON.parse(cachedProfile)
+          setProfile(activeProfile)
+        }
+        if (cachedSections) {
+          const parsed = JSON.parse(cachedSections)
+          setSections(migrateSections(parsed, activeProfile))
+        } else {
+          setSections(migrateSections([], activeProfile))
+        }
       } finally {
         setFetching(false)
       }
