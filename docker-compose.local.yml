@@ -1,8 +1,8 @@
 services:
   bercario_web_local:
     platform: linux/arm64
-    container_name: bercario_web_local
-    hostname: bercario_web_local
+    container_name: bercario_web_dev
+    hostname: bercario_web_dev
     restart: unless-stopped
     build:
       context: .
