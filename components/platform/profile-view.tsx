@@ -136,9 +136,12 @@ export function ProfileView({
         <Card className="overflow-hidden border-border p-0 shadow-none">
           <div className="relative h-28 bg-secondary">
             <img
-              src={profile.banner || '/placeholder.svg'}
+              src={profile.banner || '/images/company-banner.png'}
               alt="Banner del negocio"
               className="h-full w-full object-cover"
+              onError={(e) => {
+                e.currentTarget.src = '/images/company-banner.png'
+              }}
             />
             <span className="absolute right-2 top-2 rounded-full bg-card/80 px-2 py-0.5 text-[11px] text-muted-foreground backdrop-blur">
               Banner
@@ -148,9 +151,12 @@ export function ProfileView({
             <div className="-mt-8 mb-3 flex items-end justify-between">
               <div className="h-16 w-16 overflow-hidden rounded-2xl border-4 border-card bg-card shadow-sm">
                 <img
-                  src={profile.logo || '/placeholder.svg'}
+                  src={profile.logo || '/images/company-logo.png'}
                   alt="Logo del negocio"
                   className="h-full w-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src = '/images/company-logo.png'
+                  }}
                 />
               </div>
             </div>
@@ -303,6 +309,9 @@ export function ProfileView({
                   src={product.image || '/placeholder.svg'}
                   alt={product.title}
                   className="h-full w-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src = '/placeholder.svg'
+                  }}
                 />
                 <div className="absolute right-2 top-2 flex gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
                   <button

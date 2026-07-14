@@ -87,7 +87,14 @@ export function ProductDialog({
                       : 'border-transparent hover:border-border',
                   )}
                 >
-                  <img src={img} alt="" className="h-full w-full object-cover" />
+                  <img
+                    src={img}
+                    alt=""
+                    className="h-full w-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = '/placeholder.svg'
+                    }}
+                  />
                 </button>
               ))}
             </div>

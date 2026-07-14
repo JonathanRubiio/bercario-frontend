@@ -38,18 +38,24 @@ function PreviewSection({
       <section className="relative">
         <div className="relative h-56 w-full overflow-hidden sm:h-72">
           <img
-            src={profile.banner || '/placeholder.svg'}
+            src={profile.banner || '/images/company-banner.png'}
             alt="Banner"
             className="h-full w-full object-cover"
+            onError={(e) => {
+              e.currentTarget.src = '/images/company-banner.png'
+            }}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-foreground/50 to-transparent" />
         </div>
         <div className="mx-auto -mt-12 flex max-w-3xl flex-col items-center px-6 text-center">
           <div className="h-20 w-20 overflow-hidden rounded-3xl border-4 border-background bg-card shadow-md">
             <img
-              src={profile.logo || '/placeholder.svg'}
+              src={profile.logo || '/images/company-logo.png'}
               alt={profile.name}
               className="h-full w-full object-cover"
+              onError={(e) => {
+                e.currentTarget.src = '/images/company-logo.png'
+              }}
             />
           </div>
           <h1 className="mt-4 font-serif text-3xl font-semibold tracking-tight text-foreground">
@@ -97,6 +103,9 @@ function PreviewSection({
                   src={p.image || '/placeholder.svg'}
                   alt={p.title}
                   className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  onError={(e) => {
+                    e.currentTarget.src = '/placeholder.svg'
+                  }}
                 />
                 <span className="absolute left-2 top-2 rounded-full bg-card/90 px-2 py-0.5 text-[11px] font-semibold text-foreground backdrop-blur">
                   {p.price}
