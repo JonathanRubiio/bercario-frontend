@@ -101,7 +101,7 @@ function PreviewSection({
               <div className="relative aspect-square overflow-hidden bg-secondary">
                 <img
                   src={p.image || '/placeholder.svg'}
-                  alt={p.title}
+                  alt={p.title || (p as any).name}
                   className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                   onError={(e) => {
                     e.currentTarget.src = '/placeholder.svg'
@@ -113,10 +113,10 @@ function PreviewSection({
               </div>
               <div className="p-3">
                 <h3 className="truncate text-sm font-medium text-foreground">
-                  {p.title}
+                  {p.title || (p as any).name}
                 </h3>
                 <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-muted-foreground">
-                  {p.description}
+                  {p.description || (p as any).desc}
                 </p>
                 <div className="mt-2 flex flex-wrap gap-1">
                   {p.tags?.slice(0, 2).map((t) => (

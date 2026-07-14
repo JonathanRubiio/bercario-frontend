@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 import { availableTags, type Product } from '@/lib/bercario-data'
+import { uploadService } from '../../lib/api/services/upload'
 
 const emptyProduct: Product = {
   id: '',
@@ -45,18 +46,41 @@ export function ProductDialog({
   onSave: (p: Product) => void
 }) {
   const [draft, setDraft] = useState<Product>(emptyProduct)
+  const [uploadingProductImage, setUploadingProductImage] = useState(false)
+
+  async function handleProductImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    try {
+      setUploadingProductImage(true)
+      const res = await uploadService.uploadImage(file)
+      setDraft((d) => ({ ...d, image: res.url }))
+    } catch (err) {
+      console.error('Error al subir imagen de producto:', err)
+      alert('Error al subir la imagen')
+    } finally {
+      setUploadingProductImage(false)
+    }
+  }
 
   useEffect(() => {
-    setDraft(product ?? { ...emptyProduct, id: `p-${Date.now()}` })
+    const defaultProduct = product ?? { ...emptyProduct, id: `p-${Date.now()}` }
+    setDraft({
+      ...defaultProduct,
+      tags: defaultProduct.tags || [],
+    })
   }, [product, open])
 
   function toggleTag(tag: string) {
-    setDraft((d) => ({
-      ...d,
-      tags: d.tags.includes(tag)
-        ? d.tags.filter((t) => t !== tag)
-        : [...d.tags, tag],
-    }))
+    setDraft((d) => {
+      const currentTags = d.tags || []
+      return {
+        ...d,
+        tags: currentTags.includes(tag)
+          ? currentTags.filter((t) => t !== tag)
+          : [...currentTags, tag],
+      }
+    })
   }
 
   return (
@@ -73,7 +97,7 @@ export function ProductDialog({
 
         <div className="grid gap-4 py-2">
           <div className="grid gap-1.5">
-            <Label>Imagen</Label>
+            <Label>Imagen del producto</Label>
             <div className="flex flex-wrap gap-2">
               {imageChoices.map((img) => (
                 <button
@@ -97,6 +121,37 @@ export function ProductDialog({
                   />
                 </button>
               ))}
+
+              {/* Render dynamic choice if a custom image was uploaded */}
+              {draft.image && !imageChoices.includes(draft.image) && (
+                <button
+                  type="button"
+                  className="h-16 w-16 overflow-hidden rounded-lg border-2 border-primary bg-secondary"
+                >
+                  <img
+                    src={draft.image}
+                    alt="Imagen de producto subida"
+                    className="h-full w-full object-cover"
+                  />
+                </button>
+              )}
+
+              {/* Upload button */}
+              <label className={cn(
+                'h-16 w-16 flex flex-col items-center justify-center rounded-lg border-2 border-dashed bg-secondary transition-colors cursor-pointer hover:border-border text-muted-foreground',
+                uploadingProductImage && 'opacity-60 cursor-not-allowed'
+              )}>
+                <span className="text-[10px] font-medium text-center leading-tight">
+                  {uploadingProductImage ? 'Subiendo...' : 'Subir imagen'}
+                </span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleProductImageUpload}
+                  disabled={uploadingProductImage}
+                />
+              </label>
             </div>
           </div>
 
@@ -143,7 +198,7 @@ export function ProductDialog({
                   onClick={() => toggleTag(tag)}
                   className={cn(
                     'rounded-full border px-2.5 py-1 text-xs font-medium transition-colors',
-                    draft.tags.includes(tag)
+                    (draft.tags || []).includes(tag)
                       ? 'border-primary bg-primary text-primary-foreground'
                       : 'border-border bg-secondary text-muted-foreground hover:text-foreground',
                   )}

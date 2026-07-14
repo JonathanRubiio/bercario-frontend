@@ -11,6 +11,7 @@ import { ProductDialog } from '@/components/platform/product-dialog'
 import { IncomingBadge } from '@/components/platform/incoming-badge'
 import { cn } from '@/lib/utils'
 import type { BusinessProfile, Product } from '@/lib/bercario-data'
+import { uploadService } from '../../lib/api/services/upload'
 import {
   Pencil,
   Check,
@@ -98,6 +99,38 @@ export function ProfileView({
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [copied, setCopied] = useState(false)
+  const [uploadingBanner, setUploadingBanner] = useState(false)
+  const [uploadingLogo, setUploadingLogo] = useState(false)
+
+  async function handleBannerUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    try {
+      setUploadingBanner(true)
+      const res = await uploadService.uploadImage(file)
+      update('banner', res.url)
+    } catch (err) {
+      console.error('Error al subir banner:', err)
+      alert('Error al subir la imagen')
+    } finally {
+      setUploadingBanner(false)
+    }
+  }
+
+  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    try {
+      setUploadingLogo(true)
+      const res = await uploadService.uploadImage(file)
+      update('logo', res.url)
+    } catch (err) {
+      console.error('Error al subir logo:', err)
+      alert('Error al subir la imagen')
+    } finally {
+      setUploadingLogo(false)
+    }
+  }
 
   function update<K extends keyof BusinessProfile>(key: K, val: BusinessProfile[K]) {
     onProfileChange({ ...profile, [key]: val })
@@ -134,7 +167,7 @@ export function ProfileView({
       {/* Left column */}
       <div className="space-y-6">
         <Card className="overflow-hidden border-border p-0 shadow-none">
-          <div className="relative h-28 bg-secondary">
+          <div className="relative h-28 bg-secondary group">
             <img
               src={profile.banner || '/images/company-banner.png'}
               alt="Banner del negocio"
@@ -143,13 +176,17 @@ export function ProfileView({
                 e.currentTarget.src = '/images/company-banner.png'
               }}
             />
+            <label className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-white text-xs font-medium">
+              {uploadingBanner ? 'Subiendo...' : 'Cambiar Banner'}
+              <input type="file" accept="image/*" className="hidden" onChange={handleBannerUpload} disabled={uploadingBanner} />
+            </label>
             <span className="absolute right-2 top-2 rounded-full bg-card/80 px-2 py-0.5 text-[11px] text-muted-foreground backdrop-blur">
               Banner
             </span>
           </div>
           <div className="px-5 pb-5">
             <div className="-mt-8 mb-3 flex items-end justify-between">
-              <div className="h-16 w-16 overflow-hidden rounded-2xl border-4 border-card bg-card shadow-sm">
+              <div className="relative h-16 w-16 overflow-hidden rounded-2xl border-4 border-card bg-card shadow-sm group">
                 <img
                   src={profile.logo || '/images/company-logo.png'}
                   alt="Logo del negocio"
@@ -158,6 +195,10 @@ export function ProfileView({
                     e.currentTarget.src = '/images/company-logo.png'
                   }}
                 />
+                <label className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-white text-[10px] text-center font-medium leading-none p-1">
+                  {uploadingLogo ? '...' : 'Subir'}
+                  <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={uploadingLogo} />
+                </label>
               </div>
             </div>
             <EditableText
@@ -307,7 +348,7 @@ export function ProfileView({
               <div className="relative aspect-square bg-secondary">
                 <img
                   src={product.image || '/placeholder.svg'}
-                  alt={product.title}
+                  alt={product.title || (product as any).name}
                   className="h-full w-full object-cover"
                   onError={(e) => {
                     e.currentTarget.src = '/placeholder.svg'
@@ -336,14 +377,14 @@ export function ProfileView({
               <div className="p-4">
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="text-sm font-semibold leading-tight text-foreground">
-                    {product.title}
+                    {product.title || (product as any).name}
                   </h3>
                   <span className="shrink-0 font-serif text-sm font-semibold text-foreground">
                     {product.price}
                   </span>
                 </div>
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                  {product.description}
+                  {product.description || (product as any).desc}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   {product.tags?.map((tag) => (
