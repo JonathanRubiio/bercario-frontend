@@ -110,7 +110,7 @@ function PreviewSection({
                   {p.description}
                 </p>
                 <div className="mt-2 flex flex-wrap gap-1">
-                  {p.tags.slice(0, 2).map((t) => (
+                  {p.tags?.slice(0, 2).map((t) => (
                     <span
                       key={t}
                       className="rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-medium text-accent-foreground"

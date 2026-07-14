@@ -337,7 +337,7 @@ export function ProfileView({
                   {product.description}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-1.5">
-                  {product.tags.map((tag) => (
+                  {product.tags?.map((tag) => (
                     <Badge
                       key={tag}
                       variant="secondary"
