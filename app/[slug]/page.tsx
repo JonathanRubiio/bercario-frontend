@@ -29,7 +29,7 @@ export default function BusinessLandingPage({
         const data = await profileService.getProfileBySlug(slug)
         if (data) {
           setProfile(data)
-          const migrated = migrateSections(data.sections || [], data)
+          const migrated = migrateSections(data.landingConfig || [], data)
           setSections(migrated)
         } else {
           setError('El negocio solicitado no existe.')
@@ -94,5 +94,5 @@ export default function BusinessLandingPage({
     )
   }
 
-  return <PublicBusinessLanding profile={profile} sections={sections} />
+  return <PublicBusinessLanding profile={profile} sections={sections} globalStyles={profile.globalStyles} />
 }

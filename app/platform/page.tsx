@@ -36,7 +36,7 @@ export default function PlatformPage() {
         const data = await profileService.getMyProfile()
         if (data) {
           setProfile(data)
-          const migrated = migrateSections(data.sections || [], data)
+          const migrated = migrateSections(data.landingConfig || [], data)
           setSections(migrated)
         }
       } catch (err) {

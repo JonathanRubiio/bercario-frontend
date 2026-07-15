@@ -43,7 +43,7 @@ export function BusinessPreview({
 
       {/* Scrollable rendered landing */}
       <div className="flex-1 overflow-y-auto bg-background">
-        <PublicBusinessLanding profile={profile} sections={sections} />
+        <PublicBusinessLanding profile={profile} sections={sections} globalStyles={profile.globalStyles} />
       </div>
     </div>
   )

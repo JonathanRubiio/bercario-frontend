@@ -1,28 +1,173 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import type { BusinessProfile, LandingSection } from '@/lib/bercario-data'
 import { Phone, Mail, MapPin, ShoppingBag } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { 
+  type BusinessProfile, 
+  type LandingSection, 
+  palettes, 
+  fontPairs 
+} from '@/lib/bercario-data'
+
+function EditableTextInline({
+  value,
+  onSave,
+  className,
+  as: Element = 'span',
+  type = 'input',
+}: {
+  value: string
+  onSave?: (val: string) => void
+  className?: string
+  as?: any
+  type?: 'input' | 'textarea'
+}) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [tempValue, setTempValue] = useState(value)
+
+  useEffect(() => {
+    setTempValue(value)
+  }, [value])
+
+  if (!onSave) {
+    return <Element className={className}>{value}</Element>
+  }
+
+  if (isEditing) {
+    return type === 'textarea' ? (
+      <textarea
+        value={tempValue}
+        onChange={(e) => setTempValue(e.target.value)}
+        onBlur={() => {
+          setIsEditing(false)
+          if (tempValue.trim() !== '') {
+            onSave(tempValue)
+          }
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') {
+            setIsEditing(false)
+            setTempValue(value)
+          }
+        }}
+        className={cn(
+          "bg-background text-foreground border border-primary focus:outline-none focus:ring-1 focus:ring-primary px-1 py-0.5 rounded w-full min-h-[80px] text-sm",
+          className
+        )}
+        autoFocus
+        onClick={(e) => e.stopPropagation()}
+        onDoubleClick={(e) => e.stopPropagation()}
+      />
+    ) : (
+      <input
+        type="text"
+        value={tempValue}
+        onChange={(e) => setTempValue(e.target.value)}
+        onBlur={() => {
+          setIsEditing(false)
+          if (tempValue.trim() !== '') {
+            onSave(tempValue)
+          }
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            setIsEditing(false)
+            if (tempValue.trim() !== '') {
+              onSave(tempValue)
+            }
+          } else if (e.key === 'Escape') {
+            setIsEditing(false)
+            setTempValue(value)
+          }
+        }}
+        className={cn(
+          "bg-background text-foreground border border-primary focus:outline-none focus:ring-1 focus:ring-primary px-1 py-0.5 rounded w-full text-inherit",
+          className
+        )}
+        autoFocus
+        onClick={(e) => e.stopPropagation()}
+        onDoubleClick={(e) => e.stopPropagation()}
+      />
+    )
+  }
+
+  return (
+    <Element
+      onDoubleClick={(e: any) => {
+        e.stopPropagation()
+        setIsEditing(true)
+      }}
+      className={cn(
+        "cursor-pointer hover:bg-primary/10 hover:ring-1 hover:ring-primary/30 px-1 py-0.5 rounded transition-all inline-block max-w-full", 
+        className
+      )}
+      title="Doble clic para editar"
+    >
+      {value}
+    </Element>
+  )
+}
 
 export function PublicBusinessLanding({
   profile,
   sections,
+  globalStyles,
+  onInlineEdit,
+  onImageClick,
 }: {
   profile: BusinessProfile
   sections: LandingSection[]
+  globalStyles?: { paletteId: string; fontPairId: string; buttonStyle: 'rounded' | 'square' | 'pill' }
+  onInlineEdit?: (sectionId: string, fieldKey: string, newValue: string, index?: number, itemKey?: string) => void
+  onImageClick?: (type: 'logo' | 'banner' | { sectionId: string; contentKey: string }) => void
 }) {
+  const activePalette = palettes.find((p) => p.id === globalStyles?.paletteId) || palettes[0]
+  const activeFont = fontPairs.find((f) => f.id === globalStyles?.fontPairId) || fontPairs[0]
+  const activeRadius =
+    globalStyles?.buttonStyle === 'square'
+      ? '0px'
+      : globalStyles?.buttonStyle === 'pill'
+      ? '9999px'
+      : '0.5rem'
+
   return (
-    <div className="w-full bg-background text-foreground">
-      <div className="mx-auto max-w-4xl">
+    <div
+      className="w-full transition-colors duration-400 ease-in-out pb-10"
+      style={{
+        backgroundColor: activePalette.colors[0],
+        color: activePalette.colors[2],
+        fontFamily: activeFont.bodyFont,
+        '--preview-bg': activePalette.colors[0],
+        '--preview-primary': activePalette.colors[1],
+        '--preview-text': activePalette.colors[2],
+        '--preview-font-title': activeFont.titleFont,
+        '--preview-font-body': activeFont.bodyFont,
+        '--preview-btn-radius': activeRadius,
+      } as React.CSSProperties}
+    >
+      <div className="mx-auto max-w-4xl transition-all duration-300">
         {sections
           .filter((s) => s.visible)
           .sort((a, b) => a.order - b.order)
           .map((section) => (
-            <PreviewSection key={section.id} section={section} profile={profile} />
+            <div 
+              key={section.id} 
+              id={`preview-section-${section.id}`} 
+              className="relative transition-all duration-300"
+            >
+              <PreviewSection 
+                section={section} 
+                profile={profile} 
+                onInlineEdit={onInlineEdit} 
+                onImageClick={onImageClick}
+              />
+            </div>
           ))}
 
-        <footer className="border-t border-border px-6 py-8 text-center text-xs text-muted-foreground">
+        <footer className="border-t border-border/30 px-6 py-8 text-center text-xs opacity-75">
           Sitio generado con Berçário · {profile.name}
         </footer>
       </div>
@@ -33,46 +178,86 @@ export function PublicBusinessLanding({
 function PreviewSection({
   section,
   profile,
+  onInlineEdit,
+  onImageClick,
 }: {
   section: LandingSection
   profile: BusinessProfile
+  onInlineEdit?: (sectionId: string, fieldKey: string, newValue: string, index?: number, itemKey?: string) => void
+  onImageClick?: (type: 'logo' | 'banner' | { sectionId: string; contentKey: string }) => void
 }) {
   const { type, content } = section
+  
+  // Alinear textos
+  const textAlignment = content?.align || (type === 'HERO_BANNER' ? 'center' : 'left')
+  const alignClass =
+    textAlignment === 'right'
+      ? 'text-right items-end'
+      : textAlignment === 'center'
+      ? 'text-center items-center'
+      : 'text-left items-start'
 
   if (type === 'HERO_BANNER') {
     return (
-      <section className="relative">
-        <div className="relative h-56 w-full overflow-hidden sm:h-72">
+      <section className="relative w-full flex flex-col items-center">
+        <div className="relative h-56 w-full overflow-hidden sm:h-72 group/banner">
           <img
             src={profile.banner || '/images/company-banner.png'}
             alt="Banner"
-            className="h-full w-full object-cover"
+            className="h-full w-full object-cover cursor-pointer hover:brightness-95 transition-all"
+            onClick={() => onImageClick?.('banner')}
+            title="Clic para cambiar imagen de banner"
             onError={(e) => {
               e.currentTarget.src = '/images/company-banner.png'
             }}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-foreground/50 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-foreground/45 to-transparent pointer-events-none" />
         </div>
-        <div 
-          className="mx-auto -mt-12 flex max-w-3xl flex-col items-center px-6 py-8 text-center rounded-b-2xl border-x border-b border-border/40 shadow-sm"
-          style={{ backgroundColor: content?.backgroundColor || '#f5f3ef' }}
+        <div
+          className={cn(
+            "mx-auto -mt-12 flex w-11/12 max-w-3xl flex-col px-6 py-8 rounded-2xl border border-border/40 shadow-sm transition-all duration-400 ease-in-out",
+            alignClass
+          )}
+          style={{ backgroundColor: 'var(--preview-bg)', borderColor: 'var(--preview-primary)' }}
         >
-          <div className="h-20 w-20 overflow-hidden rounded-3xl border-4 border-background bg-card shadow-md">
+          <div className="h-20 w-20 overflow-hidden rounded-3xl border-4 border-background bg-card shadow-md relative group/logo">
             <img
               src={profile.logo || '/images/company-logo.png'}
               alt={profile.name}
-              className="h-full w-full object-cover"
+              className="h-full w-full object-cover cursor-pointer hover:brightness-95 transition-all"
+              onClick={() => onImageClick?.('logo')}
+              title="Clic para cambiar logo"
               onError={(e) => {
                 e.currentTarget.src = '/images/company-logo.png'
               }}
             />
           </div>
-          <h1 className="mt-4 font-serif text-3xl font-semibold tracking-tight text-foreground">
-            {content?.title || profile.name}
-          </h1>
-          <p className="mt-1.5 text-muted-foreground">{content?.subtitle || profile.tagline}</p>
-          <Button className="mt-5 rounded-full shadow-sm">
-            <ShoppingBag className="mr-1 h-4 w-4" /> {content?.ctaText || 'Ver catálogo'}
+          <EditableTextInline
+            as="h1"
+            value={content?.title || profile.name}
+            onSave={onInlineEdit ? (val) => onInlineEdit(section.id, 'title', val) : undefined}
+            className="mt-4 font-bold tracking-tight text-foreground text-3xl transition-all duration-300"
+            style={{ fontFamily: 'var(--preview-font-title)' }}
+          />
+          <EditableTextInline
+            as="p"
+            value={content?.subtitle || profile.tagline}
+            onSave={onInlineEdit ? (val) => onInlineEdit(section.id, 'subtitle', val) : undefined}
+            className="mt-1.5 opacity-80"
+          />
+          <Button
+            className="mt-5 shadow-sm border border-transparent font-medium hover:scale-105 active:scale-95 transition-all duration-300"
+            style={{
+              borderRadius: 'var(--preview-btn-radius)',
+              backgroundColor: 'var(--preview-primary)',
+              color: 'var(--preview-bg)',
+            }}
+          >
+            <ShoppingBag className="mr-1.5 h-4 w-4" />
+            <EditableTextInline
+              value={content?.ctaText || 'Ver catálogo'}
+              onSave={onInlineEdit ? (val) => onInlineEdit(section.id, 'ctaText', val) : undefined}
+            />
           </Button>
         </div>
       </section>
@@ -81,31 +266,49 @@ function PreviewSection({
 
   if (type === 'ABOUT_US') {
     return (
-      <section className="mx-auto max-w-3xl px-6 py-12">
-        <h2 className="font-serif text-2xl font-semibold text-foreground">
-          {content?.title || 'Quiénes somos'}
-        </h2>
-        <p className="mt-3 text-pretty leading-relaxed text-muted-foreground text-sm">
-          {content?.description || profile.description}
-        </p>
+      <section className={cn("mx-auto max-w-3xl px-6 py-12 flex flex-col", alignClass)}>
+        <EditableTextInline
+          as="h2"
+          value={content?.title || 'Quiénes somos'}
+          onSave={onInlineEdit ? (val) => onInlineEdit(section.id, 'title', val) : undefined}
+          className="text-2xl font-semibold text-foreground transition-all duration-300"
+          style={{ fontFamily: 'var(--preview-font-title)' }}
+        />
+        <div className="mt-3 text-pretty leading-relaxed text-sm opacity-85 w-full">
+          <EditableTextInline
+            as="p"
+            type="textarea"
+            value={content?.description || profile.description}
+            onSave={onInlineEdit ? (val) => onInlineEdit(section.id, 'description', val) : undefined}
+            className="w-full leading-relaxed"
+          />
+        </div>
       </section>
     )
   }
 
   if (type === 'PRODUCTS_LIST') {
     return (
-      <section className="mx-auto max-w-4xl px-6 py-12">
-        <h2 className="font-serif text-2xl font-semibold text-foreground">
-          {content?.title || 'Catálogo'}
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {content?.subtitle || `${profile.products?.length || 0} productos disponibles al por mayor`}
-        </p>
-        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
+      <section className={cn("mx-auto max-w-4xl px-6 py-12 flex flex-col", alignClass)}>
+        <EditableTextInline
+          as="h2"
+          value={content?.title || 'Catálogo'}
+          onSave={onInlineEdit ? (val) => onInlineEdit(section.id, 'title', val) : undefined}
+          className="text-2xl font-semibold text-foreground transition-all duration-300"
+          style={{ fontFamily: 'var(--preview-font-title)' }}
+        />
+        <EditableTextInline
+          as="p"
+          value={content?.subtitle || `${profile.products?.length || 0} productos disponibles al por mayor`}
+          onSave={onInlineEdit ? (val) => onInlineEdit(section.id, 'subtitle', val) : undefined}
+          className="mt-1 text-sm opacity-80"
+        />
+        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 w-full">
           {profile.products.map((p) => (
             <div
               key={p.id}
-              className="group overflow-hidden rounded-xl border border-border bg-card shadow-sm"
+              className="group overflow-hidden rounded-xl border border-border/40 bg-card shadow-sm"
+              style={{ borderColor: 'var(--preview-primary)' }}
             >
               <div className="relative aspect-square overflow-hidden bg-secondary">
                 <img
@@ -147,23 +350,31 @@ function PreviewSection({
 
   if (type === 'CONTACT_INFO') {
     return (
-      <section className="border-t border-border bg-secondary/40 px-6 py-12">
-        <div className="mx-auto max-w-3xl">
-          <h2 className="font-serif text-2xl font-semibold text-foreground">
-            {content?.title || 'Contáctanos'}
-          </h2>
-          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+      <section className="border-t border-border/30 bg-secondary/20 px-6 py-12 w-full">
+        <div className={cn("mx-auto max-w-3xl flex flex-col", alignClass)}>
+          <EditableTextInline
+            as="h2"
+            value={content?.title || 'Contáctanos'}
+            onSave={onInlineEdit ? (val) => onInlineEdit(section.id, 'title', val) : undefined}
+            className="text-2xl font-semibold text-foreground transition-all duration-300"
+            style={{ fontFamily: 'var(--preview-font-title)' }}
+          />
+          <div className="mt-5 grid gap-3 sm:grid-cols-3 w-full">
             {[
-              { icon: Phone, value: content?.phone || profile.phone },
-              { icon: Mail, value: content?.email || profile.email },
-              { icon: MapPin, value: content?.address || profile.address },
+              { icon: Phone, field: 'phone', value: content?.phone || profile.phone },
+              { icon: Mail, field: 'email', value: content?.email || profile.email },
+              { icon: MapPin, field: 'address', value: content?.address || profile.address },
             ].map((c, i) => (
               <div
                 key={i}
-                className="flex items-center gap-2.5 rounded-xl border border-border bg-card p-3.5 text-sm"
+                className="flex items-center gap-2.5 rounded-xl border border-border/40 bg-card p-3.5 text-sm"
               >
                 <c.icon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                <span className="truncate text-foreground">{c.value}</span>
+                <EditableTextInline
+                  value={c.value}
+                  onSave={onInlineEdit ? (val) => onInlineEdit(section.id, c.field, val) : undefined}
+                  className="truncate text-foreground text-xs"
+                />
               </div>
             ))}
           </div>
@@ -174,19 +385,33 @@ function PreviewSection({
 
   if (type === 'FEATURES_LIST') {
     return (
-      <section className="mx-auto max-w-3xl px-6 py-12">
-        <h2 className="font-serif text-2xl font-semibold text-foreground mb-1">
-          {content?.title || 'Nuestros Servicios'}
-        </h2>
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+      <section className={cn("mx-auto max-w-3xl px-6 py-12 flex flex-col", alignClass)}>
+        <EditableTextInline
+          as="h2"
+          value={content?.title || 'Nuestros Servicios'}
+          onSave={onInlineEdit ? (val) => onInlineEdit(section.id, 'title', val) : undefined}
+          className="text-2xl font-semibold text-foreground mb-1.5 transition-all duration-300"
+          style={{ fontFamily: 'var(--preview-font-title)' }}
+        />
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 w-full">
           {(content?.items || []).map((item: any, i: number) => (
-            <Card key={i} className="p-5 border border-border bg-card shadow-sm rounded-2xl transition-all hover:border-primary/20 hover:shadow-md">
-              <h3 className="text-sm font-semibold text-foreground mb-1.5">
-                {item.title}
-              </h3>
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                {item.description}
-              </p>
+            <Card
+              key={i}
+              className="p-5 border border-border/40 bg-card shadow-sm rounded-2xl transition-all duration-300 hover:scale-[1.01] hover:shadow-md flex flex-col items-stretch"
+            >
+              <EditableTextInline
+                as="h3"
+                value={item.title}
+                onSave={onInlineEdit ? (val) => onInlineEdit(section.id, 'items', val, i, 'title') : undefined}
+                className="text-sm font-semibold text-foreground mb-1.5"
+              />
+              <EditableTextInline
+                as="p"
+                type="textarea"
+                value={item.description}
+                onSave={onInlineEdit ? (val) => onInlineEdit(section.id, 'items', val, i, 'description') : undefined}
+                className="text-xs leading-relaxed text-muted-foreground w-full"
+              />
             </Card>
           ))}
         </div>
@@ -196,13 +421,17 @@ function PreviewSection({
 
   if (type === 'TESTIMONIALS') {
     return (
-      <section className="mx-auto max-w-3xl px-6 py-12">
-        <h2 className="font-serif text-2xl font-semibold text-foreground mb-1">
-          {content?.title || 'Lo que dicen nuestros clientes'}
-        </h2>
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+      <section className={cn("mx-auto max-w-3xl px-6 py-12 flex flex-col", alignClass)}>
+        <EditableTextInline
+          as="h2"
+          value={content?.title || 'Lo que dicen nuestros clientes'}
+          onSave={onInlineEdit ? (val) => onInlineEdit(section.id, 'title', val) : undefined}
+          className="text-2xl font-semibold text-foreground mb-1.5 transition-all duration-300"
+          style={{ fontFamily: 'var(--preview-font-title)' }}
+        />
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 w-full">
           {(profile.testimonials || []).map((t: any) => (
-            <Card key={t.id} className="p-5 border border-border bg-card shadow-sm rounded-xl">
+            <Card key={t.id} className="p-5 border border-border/40 bg-card shadow-sm rounded-xl">
               <p className="text-xs italic text-muted-foreground">"{t.quote || t.text}"</p>
               <div className="mt-3 flex items-center justify-between text-[11px]">
                 <span className="font-semibold text-foreground">{t.name || t.author}</span>
@@ -217,11 +446,15 @@ function PreviewSection({
 
   if (type === 'FAQ') {
     return (
-      <section className="mx-auto max-w-3xl px-6 py-12">
-        <h2 className="font-serif text-2xl font-semibold text-foreground mb-1">
-          {content?.title || 'Preguntas Frecuentes'}
-        </h2>
-        <div className="mt-6 space-y-4">
+      <section className={cn("mx-auto max-w-3xl px-6 py-12 flex flex-col", alignClass)}>
+        <EditableTextInline
+          as="h2"
+          value={content?.title || 'Preguntas Frecuentes'}
+          onSave={onInlineEdit ? (val) => onInlineEdit(section.id, 'title', val) : undefined}
+          className="text-2xl font-semibold text-foreground mb-1.5 transition-all duration-300"
+          style={{ fontFamily: 'var(--preview-font-title)' }}
+        />
+        <div className="mt-6 space-y-4 w-full">
           {(profile.faqs || []).map((f: any) => (
             <div key={f.id} className="border-b border-border/60 pb-3">
               <h4 className="text-sm font-semibold text-foreground">{f.question || f.q}</h4>
