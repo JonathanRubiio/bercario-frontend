@@ -10,6 +10,7 @@ import { animate } from 'animejs'
 import { 
   type BusinessProfile, 
   type LandingSection, 
+  type ElementWidget,
   palettes, 
   fontPairs 
 } from '@/lib/bercario-data'
@@ -414,16 +415,16 @@ function TestimonialsSlider({
 }
 
 function LeadCaptureForm({
-  title,
-  subtitle,
+  title = '¿Listo para empezar?',
+  subtitle = 'Déjanos tus datos y te contactaremos de inmediato.',
   ctaText,
   slug,
   onInlineEditTitle,
   onInlineEditSubtitle,
   onInlineEditCta,
 }: {
-  title: string
-  subtitle: string
+  title?: string
+  subtitle?: string
   ctaText: string
   slug: string
   onInlineEditTitle?: (val: string) => void
@@ -539,6 +540,181 @@ function LeadCaptureForm({
   )
 }
 
+function ElementWidgetRenderer({
+  element,
+  sectionId,
+  profile,
+  onInlineEdit,
+  onImageClick,
+}: {
+  element: ElementWidget
+  sectionId: string
+  profile: BusinessProfile
+  onInlineEdit?: (sectionId: string, fieldKey: string, newValue: string, index?: any, itemKey?: string) => void
+  onImageClick?: (type: 'logo' | 'banner' | { sectionId: string; contentKey: string }) => void
+}) {
+  const { type, content, styles } = element
+  const alignmentClass = styles?.alignment === 'center'
+    ? 'text-center mx-auto'
+    : styles?.alignment === 'right'
+    ? 'text-right ml-auto'
+    : 'text-left mr-auto'
+
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!ref.current) return
+    animate(ref.current, {
+      scale: [0.85, 1],
+      opacity: [0, 1],
+      duration: 350,
+      easing: 'easeOutBack'
+    })
+  }, [element.id])
+
+  switch (type) {
+    case 'HEADING': {
+      const Level = content.level || 'h2'
+      let headingClass = 'font-bold font-serif leading-tight'
+      if (Level === 'h1') headingClass += ' text-3xl md:text-4xl'
+      else if (Level === 'h2') headingClass += ' text-2xl md:text-3xl'
+      else if (Level === 'h3') headingClass += ' text-xl md:text-2xl'
+      else headingClass += ' text-lg'
+
+      return (
+        <div ref={ref} className={cn("w-full transition-all duration-300", alignmentClass)}>
+          <EditableTextInline
+            as={Level}
+            value={content.text || 'Encabezado'}
+            onSave={onInlineEdit ? (val) => onInlineEdit(sectionId, 'element_content', val, element.id, 'text') : undefined}
+            className={cn(headingClass)}
+            style={styles?.color ? { color: styles.color } : undefined}
+          />
+        </div>
+      )
+    }
+
+    case 'PARAGRAPH':
+      return (
+        <div ref={ref} className={cn("w-full transition-all duration-300", alignmentClass)}>
+          <EditableTextInline
+            as="p"
+            value={content.text || 'Texto del párrafo.'}
+            onSave={onInlineEdit ? (val) => onInlineEdit(sectionId, 'element_content', val, element.id, 'text') : undefined}
+            className={cn(
+              "text-sm sm:text-base leading-relaxed opacity-80",
+              styles?.italic && 'italic',
+              styles?.bold && 'font-semibold'
+            )}
+          />
+        </div>
+      )
+
+    case 'IMAGE':
+      return (
+        <div ref={ref} className={cn("relative overflow-hidden w-full transition-all duration-300 group/widget-img", alignmentClass)}>
+          <img
+            src={content.url || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&auto=format&fit=crop&q=80'}
+            alt={content.alt || 'Imagen'}
+            className={cn(
+              "max-h-[350px] object-cover transition-transform duration-300 hover:scale-102 w-full",
+              styles?.borderRadius === 'xl' ? 'rounded-2xl' : styles?.borderRadius === 'lg' ? 'rounded-xl' : styles?.borderRadius === 'md' ? 'rounded-md' : 'rounded-none'
+            )}
+            onClick={() => onImageClick?.({ sectionId, contentKey: `element_image_${element.id}` })}
+          />
+        </div>
+      )
+
+    case 'BUTTON':
+      return (
+        <div ref={ref} className={cn("w-full transition-all duration-300", alignmentClass)}>
+          <a
+            href={content.url || '#form'}
+            className={cn(
+              buttonVariants({ variant: styles?.variant === 'outline' ? 'outline' : 'default' }),
+              "shadow-sm font-medium hover:scale-105 active:scale-95 transition-all duration-300 flex items-center gap-1 w-fit"
+            )}
+            style={{
+              borderRadius: 'var(--preview-btn-radius)',
+              backgroundColor: styles?.variant === 'outline' ? 'transparent' : 'var(--preview-primary)',
+              color: styles?.variant === 'outline' ? 'var(--preview-text)' : 'var(--preview-bg)',
+              borderColor: styles?.variant === 'outline' ? 'var(--preview-primary)' : 'transparent',
+            }}
+          >
+            <EditableTextInline
+              value={content.text || 'Hacer clic'}
+              onSave={onInlineEdit ? (val) => onInlineEdit(sectionId, 'element_content', val, element.id, 'text') : undefined}
+            />
+          </a>
+        </div>
+      )
+
+    case 'SPACER':
+      return (
+        <div 
+          ref={ref} 
+          className="w-full transition-all duration-300"
+          style={{ height: content.height || '24px' }}
+        />
+      )
+
+    case 'VIDEO':
+      return (
+        <div ref={ref} className="w-full aspect-video rounded-xl overflow-hidden shadow-sm relative transition-all duration-300">
+          <iframe
+            src={content.url ? content.url.replace('watch?v=', 'embed/') : 'https://www.youtube.com/embed/dQw4w9WgXcQ'}
+            title="Video Player"
+            className="h-full w-full border-0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        </div>
+      )
+
+    case 'FORM':
+      return (
+        <div ref={ref} className="w-full max-w-md bg-card/40 p-5 rounded-2xl border border-border/40 backdrop-blur shadow-sm transition-all duration-300 mx-auto">
+          <LeadCaptureForm slug={profile.slug} ctaText={content.ctaText || 'Enviar Datos'} />
+        </div>
+      )
+
+    case 'TESTIMONIAL':
+      return (
+        <div ref={ref} className="w-full transition-all duration-300">
+          <TestimonialsSlider 
+            title="" 
+            items={content.items || []} 
+            columns={content.columns || 3} 
+          />
+        </div>
+      )
+
+    case 'ACCORDION':
+      return (
+        <div ref={ref} className="w-full transition-all duration-300">
+          <div className="flex flex-col gap-2 w-full text-left">
+            {(content.items || []).map((faq: any, i: number) => {
+              return (
+                <details key={i} className="group border-b border-border/40 py-3 w-full cursor-pointer">
+                  <summary className="flex items-center justify-between font-serif text-sm font-semibold text-foreground list-none outline-none">
+                    <span>{faq.question}</span>
+                    <span className="text-primary transition-transform duration-200 group-open:rotate-45">+</span>
+                  </summary>
+                  <p className="mt-2 text-xs opacity-85 leading-normal whitespace-pre-line pl-1 pr-6 pt-1">
+                    {faq.answer}
+                  </p>
+                </details>
+              )
+            })}
+          </div>
+        </div>
+      )
+
+    default:
+      return null
+  }
+}
+
 function PreviewSection({
   section,
   profile,
@@ -547,7 +723,7 @@ function PreviewSection({
 }: {
   section: LandingSection
   profile: BusinessProfile
-  onInlineEdit?: (sectionId: string, fieldKey: string, newValue: string, index?: number, itemKey?: string) => void
+  onInlineEdit?: (sectionId: string, fieldKey: string, newValue: string, index?: any, itemKey?: string) => void
   onImageClick?: (type: 'logo' | 'banner' | { sectionId: string; contentKey: string }) => void
 }) {
   const { type, content } = section
@@ -563,6 +739,56 @@ function PreviewSection({
       
   // Local state for FAQ Accordion
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null)
+
+  if (type === 'GRID_SECTION') {
+    return (
+      <section 
+        className={cn("w-full px-6 py-12 flex flex-col items-center transition-all duration-300", section.styles?.paddingY || 'py-16')}
+        style={{ backgroundColor: section.styles?.backgroundColor || 'transparent' }}
+      >
+        <div className="w-full max-w-4xl grid grid-cols-1 gap-8 items-start lg:grid-cols-12">
+          {(section.columns || []).map((col, colIdx) => {
+            const widthSpan = col.width === '1/2' 
+              ? 'lg:col-span-6' 
+              : col.width === '1/3' 
+              ? 'lg:col-span-4' 
+              : col.width === '2/3' 
+              ? 'lg:col-span-8' 
+              : col.width === '1/4' 
+              ? 'lg:col-span-3' 
+              : 'lg:col-span-12';
+            
+            return (
+              <div 
+                key={col.id} 
+                className={cn(
+                  "col-span-12 flex flex-col gap-4 p-3 rounded-lg border border-dashed border-transparent hover:border-muted-foreground/30 transition-all min-h-[100px]", 
+                  widthSpan
+                )}
+              >
+                {(col.elements || []).map((el) => (
+                  <ElementWidgetRenderer 
+                    key={el.id}
+                    element={el}
+                    sectionId={section.id}
+                    profile={profile}
+                    onInlineEdit={onInlineEdit}
+                    onImageClick={onImageClick}
+                  />
+                ))}
+                
+                {(!col.elements || col.elements.length === 0) && (
+                  <div className="flex-1 flex items-center justify-center p-6 border border-dashed border-border/85 rounded-xl bg-muted/5 min-h-[100px]">
+                    <span className="text-[10px] text-muted-foreground italic">Columna Vacía</span>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </section>
+    )
+  }
 
   if (type === 'HERO_BANNER') {
     const layoutDir = content?.layoutDirection || 'left-to-right'

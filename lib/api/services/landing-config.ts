@@ -5,7 +5,7 @@ export type LandingConfigItem = {
   type: string
   order: number
   visible: boolean
-  content: Record<string, any>
+  content?: Record<string, any>
 }
 
 export type GlobalStyles = {

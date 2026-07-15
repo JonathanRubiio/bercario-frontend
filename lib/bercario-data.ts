@@ -42,7 +42,32 @@ export type BusinessProfile = {
   niche?: string
 }
 
+export type ElementType =
+  | 'HEADING'
+  | 'PARAGRAPH'
+  | 'IMAGE'
+  | 'BUTTON'
+  | 'SPACER'
+  | 'VIDEO'
+  | 'FORM'
+  | 'TESTIMONIAL'
+  | 'ACCORDION'
+
+export type ElementWidget = {
+  id: string
+  type: ElementType
+  content: any
+  styles?: any
+}
+
+export type ColumnLayout = {
+  id: string
+  width: string // e.g. "1" | "1/2" | "1/3" | "2/3" | "1/4"
+  elements: ElementWidget[]
+}
+
 export type SectionType =
+  | 'GRID_SECTION'
   | 'HERO_BANNER'
   | 'EMPATHY_SECTION'
   | 'SOLUTION_OFFER'
@@ -66,7 +91,9 @@ export type LandingSection = {
   visible: boolean
   label: string
   description: string
-  content: any
+  styles?: any
+  columns?: ColumnLayout[]
+  content?: any
 }
 
 export const initialProfile: BusinessProfile = {
@@ -359,6 +386,12 @@ export type SectionTemplate = {
 
 export const sectionTemplates: SectionTemplate[] = [
   {
+    type: 'GRID_SECTION',
+    label: 'Sección de Rejilla Modular',
+    description: 'Diseño libre por columnas y widgets (Wix Grid).',
+    repeatable: true,
+  },
+  {
     type: 'HERO_BANNER',
     label: 'Héroe / Banner principal',
     description: 'Imagen destacada, logo y propuesta de valor.',
@@ -443,6 +476,7 @@ export const availableTags = [
 
 export function getLabelForType(type: SectionType): string {
   switch (type) {
+    case 'GRID_SECTION': return 'Sección Rejilla';
     case 'HERO_BANNER': return 'Banner principal (Héroe)';
     case 'EMPATHY_SECTION': return 'Empatía (Problema)';
     case 'SOLUTION_OFFER': return 'Oferta de Solución';
@@ -460,6 +494,7 @@ export function getLabelForType(type: SectionType): string {
 
 export function getDescForType(type: SectionType): string {
   switch (type) {
+    case 'GRID_SECTION': return 'Contenedor modular por columnas y widgets.';
     case 'HERO_BANNER': return 'Imagen destacada, logo y propuesta de valor.';
     case 'EMPATHY_SECTION': return 'Sección para conectar con los dolores del cliente.';
     case 'SOLUTION_OFFER': return 'Presentación visual y persuasiva de tu producto.';
@@ -477,6 +512,8 @@ export function getDescForType(type: SectionType): string {
 
 export function getDefaultContentForType(type: SectionType, profile?: BusinessProfile): any {
   switch (type) {
+    case 'GRID_SECTION':
+      return {};
     case 'HERO_BANNER':
       return {
         title: profile?.name || 'Bienvenidos a mi marca',
@@ -573,50 +610,382 @@ export function getDefaultContentForType(type: SectionType, profile?: BusinessPr
   }
 }
 
-export function migrateSections(sections: any[], profile: BusinessProfile): LandingSection[] {
-  if (!Array.isArray(sections) || sections.length === 0) {
-    return defaultSections;
-  }
-
-  // Comprobar si ya viene en el formato nuevo
-  const hasNewType = sections.some(s => ['HERO_BANNER', 'ABOUT_US', 'PRODUCTS_LIST', 'CONTACT_INFO', 'FEATURES_LIST'].includes(s.type));
-
-  if (hasNewType) {
-    return sections.map((s, idx) => ({
-      id: s.id || `sec_${s.type.toLowerCase()}_${idx}`,
-      type: s.type,
+export function migrateToGridSection(s: any, idx: number, profile: BusinessProfile): LandingSection {
+  if (s.type === 'GRID_SECTION') {
+    return {
+      id: s.id || `sec_grid_${idx}`,
+      type: 'GRID_SECTION',
       order: typeof s.order === 'number' ? s.order : idx + 1,
       visible: typeof s.visible === 'boolean' ? s.visible : true,
-      label: s.label || getLabelForType(s.type),
-      description: s.description || getDescForType(s.type),
-      content: s.content || getDefaultContentForType(s.type, profile),
-    }));
+      label: s.label || 'Sección Rejilla',
+      description: s.description || 'Contenedor modular por columnas y widgets.',
+      styles: s.styles || { backgroundColor: '', paddingY: 'py-16', align: 'center' },
+      columns: (s.columns || []).map((col: any, colIdx: number) => ({
+        id: col.id || `col_${s.id || idx}_${colIdx}`,
+        width: col.width || '1',
+        elements: (col.elements || []).map((el: any, elIdx: number) => ({
+          id: el.id || `el_${col.id || colIdx}_${elIdx}`,
+          type: el.type || 'PARAGRAPH',
+          content: el.content || { text: 'Texto de elemento' },
+          styles: el.styles || {}
+        }))
+      }))
+    }
+  }
+  
+  if (s.type === 'PRODUCTS_LIST') {
+    return {
+      id: s.id || `sec_products_${idx}`,
+      type: 'PRODUCTS_LIST',
+      order: typeof s.order === 'number' ? s.order : idx + 1,
+      visible: typeof s.visible === 'boolean' ? s.visible : true,
+      label: s.label || 'Catálogo de Productos',
+      description: s.description || 'Vitrina de productos de tu negocio.',
+      content: s.content || { title: 'Catálogo de Productos', subtitle: 'Elige tu modelo favorito' }
+    }
   }
 
-  // Migrar formato antiguo a nuevo
-  const newSections: LandingSection[] = [];
-  sections.forEach((s, idx) => {
-    let type: SectionType = 'HERO_BANNER';
-    if (s.type === 'banner') type = 'HERO_BANNER';
-    else if (s.type === 'about') type = 'ABOUT_US';
-    else if (s.type === 'products' || s.type === 'catalog') type = 'PRODUCTS_LIST';
-    else if (s.type === 'contact') type = 'CONTACT_INFO';
-    else if (s.type === 'testimonials') type = 'TESTIMONIALS';
-    else if (s.type === 'faq') type = 'FAQ';
-    else return; // Ignorar tipos no reconocidos
+  // Convert flat legacy sections to GRID_SECTION
+  const columns: ColumnLayout[] = [];
+  const alignVal = s.content?.align || 'center';
+  const styles = {
+    backgroundColor: '',
+    paddingY: 'py-16',
+    align: alignVal
+  };
 
-    newSections.push({
-      id: `sec_${type.toLowerCase()}_${idx}_${Date.now()}`,
-      type,
-      order: idx + 1,
-      visible: true,
-      label: getLabelForType(type),
-      description: getDescForType(type),
-      content: getDefaultContentForType(type, profile),
-    });
-  });
+  switch (s.type) {
+    case 'HERO_BANNER':
+      columns.push({
+        id: `col_${s.id || idx}_1`,
+        width: '1/2',
+        elements: [
+          {
+            id: `el_${s.id || idx}_title`,
+            type: 'HEADING',
+            content: { text: s.content?.title || profile.name || 'Título Principal', level: 'h1' },
+            styles: { alignment: alignVal }
+          },
+          {
+            id: `el_${s.id || idx}_sub`,
+            type: 'PARAGRAPH',
+            content: { text: s.content?.subtitle || profile.tagline || 'Lema o subtítulo persuasivo.' },
+            styles: { alignment: alignVal }
+          },
+          {
+            id: `el_${s.id || idx}_btn`,
+            type: 'BUTTON',
+            content: { text: s.content?.ctaText || 'Ver catálogo', url: s.content?.ctaUrl || '#form' },
+            styles: { alignment: alignVal, variant: 'solid' }
+          }
+        ]
+      });
+      columns.push({
+        id: `col_${s.id || idx}_2`,
+        width: '1/2',
+        elements: [
+          {
+            id: `el_${s.id || idx}_img`,
+            type: 'IMAGE',
+            content: { url: profile.banner || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&auto=format&fit=crop&q=80', alt: profile.name || 'Hero image' },
+            styles: { borderRadius: 'xl' }
+          }
+        ]
+      });
+      break;
 
-  return newSections;
+    case 'EMPATHY_SECTION':
+      columns.push({
+        id: `col_${s.id || idx}_1`,
+        width: '1',
+        elements: [
+          {
+            id: `el_${s.id || idx}_title`,
+            type: 'HEADING',
+            content: { text: s.content?.title || '¿Cansado de no encontrar proveedores confiables?', level: 'h2' },
+            styles: { alignment: alignVal, color: 'var(--preview-primary)' }
+          },
+          {
+            id: `el_${s.id || idx}_desc`,
+            type: 'PARAGRAPH',
+            content: { text: s.content?.description || 'Sabemos lo difícil que es encontrar mercancía con garantía.' },
+            styles: { alignment: alignVal }
+          }
+        ]
+      });
+      break;
+
+    case 'SOLUTION_OFFER':
+      columns.push({
+        id: `col_${s.id || idx}_1`,
+        width: '1/2',
+        elements: [
+          {
+            id: `el_${s.id || idx}_title`,
+            type: 'HEADING',
+            content: { text: s.content?.title || 'Nuestra Propuesta', level: 'h2' },
+            styles: { alignment: alignVal }
+          },
+          {
+            id: `el_${s.id || idx}_desc`,
+            type: 'PARAGRAPH',
+            content: { text: s.content?.description || 'Ofrecemos despachos directos y atención al cliente premium.' },
+            styles: { alignment: alignVal }
+          },
+          {
+            id: `el_${s.id || idx}_btn`,
+            type: 'BUTTON',
+            content: { text: s.content?.ctaText || 'Solicitar Información', url: s.content?.ctaUrl || '#form' },
+            styles: { alignment: alignVal, variant: 'solid' }
+          }
+        ]
+      });
+      columns.push({
+        id: `col_${s.id || idx}_2`,
+        width: '1/2',
+        elements: [
+          {
+            id: `el_${s.id || idx}_img`,
+            type: 'IMAGE',
+            content: { url: s.content?.imageUrl || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600&auto=format&fit=crop&q=80', alt: 'Solución' },
+            styles: { borderRadius: 'xl' }
+          }
+        ]
+      });
+      break;
+
+    case 'VALUE_PROP':
+    case 'FEATURES_LIST': {
+      const items = s.content?.items || [];
+      const colsCount = s.content?.columns || 3;
+      const widthVal = colsCount === 2 ? '1/2' : colsCount === 4 ? '1/4' : '1/3';
+      
+      items.forEach((item: any, idxItem: number) => {
+        columns.push({
+          id: `col_${s.id || idx}_${idxItem}`,
+          width: widthVal,
+          elements: [
+            {
+              id: `el_${s.id || idx}_title_${idxItem}`,
+              type: 'HEADING',
+              content: { text: item.title || 'Beneficio Clave', level: 'h3' },
+              styles: { alignment: alignVal }
+            },
+            {
+              id: `el_${s.id || idx}_desc_${idxItem}`,
+              type: 'PARAGRAPH',
+              content: { text: item.description || 'Detalle del beneficio.' },
+              styles: { alignment: alignVal }
+            }
+          ]
+        });
+      });
+      break;
+    }
+
+    case 'HOW_IT_WORKS': {
+      const items = s.content?.items || [];
+      items.forEach((item: any, idxItem: number) => {
+        columns.push({
+          id: `col_${s.id || idx}_${idxItem}`,
+          width: '1/3',
+          elements: [
+            {
+              id: `el_${s.id || idx}_step_${idxItem}`,
+              type: 'HEADING',
+              content: { text: `Paso ${item.step || idxItem + 1}`, level: 'h3' },
+              styles: { alignment: 'center' }
+            },
+            {
+              id: `el_${s.id || idx}_title_${idxItem}`,
+              type: 'HEADING',
+              content: { text: item.title || 'Paso', level: 'h4' },
+              styles: { alignment: 'center' }
+            },
+            {
+              id: `el_${s.id || idx}_desc_${idxItem}`,
+              type: 'PARAGRAPH',
+              content: { text: item.description || 'Detalle del paso.' },
+              styles: { alignment: 'center' }
+            }
+          ]
+        });
+      });
+      break;
+    }
+
+    case 'ABOUT_US':
+      columns.push({
+        id: `col_${s.id || idx}_1`,
+        width: '1',
+        elements: [
+          {
+            id: `el_${s.id || idx}_title`,
+            type: 'HEADING',
+            content: { text: s.content?.title || 'Quiénes Somos', level: 'h2' },
+            styles: { alignment: alignVal }
+          },
+          {
+            id: `el_${s.id || idx}_desc`,
+            type: 'PARAGRAPH',
+            content: { text: s.content?.description || profile.description || 'Biografía o reseña corporativa.' },
+            styles: { alignment: alignVal }
+          },
+          {
+            id: `el_${s.id || idx}_sig`,
+            type: 'PARAGRAPH',
+            content: { text: s.content?.signature || 'Fundador' },
+            styles: { alignment: alignVal, italic: true }
+          }
+        ]
+      });
+      break;
+
+    case 'TESTIMONIALS':
+      columns.push({
+        id: `col_${s.id || idx}_1`,
+        width: '1',
+        elements: [
+          {
+            id: `el_${s.id || idx}_title`,
+            type: 'HEADING',
+            content: { text: s.content?.title || 'Testimonios', level: 'h2' },
+            styles: { alignment: 'center' }
+          },
+          {
+            id: `el_${s.id || idx}_widget`,
+            type: 'TESTIMONIAL',
+            content: { items: s.content?.items || [], columns: s.content?.columns || 3 },
+            styles: {}
+          }
+        ]
+      });
+      break;
+
+    case 'FAQ_ACCORDION':
+    case 'FAQ':
+      columns.push({
+        id: `col_${s.id || idx}_1`,
+        width: '1',
+        elements: [
+          {
+            id: `el_${s.id || idx}_title`,
+            type: 'HEADING',
+            content: { text: s.content?.title || 'Preguntas Frecuentes', level: 'h2' },
+            styles: { alignment: 'center' }
+          },
+          {
+            id: `el_${s.id || idx}_widget`,
+            type: 'ACCORDION',
+            content: { items: s.content?.items || [] },
+            styles: {}
+          }
+        ]
+      });
+      break;
+
+    case 'CONVERSION_FORM':
+      columns.push({
+        id: `col_${s.id || idx}_1`,
+        width: '1',
+        elements: [
+          {
+            id: `el_${s.id || idx}_title`,
+            type: 'HEADING',
+            content: { text: s.content?.title || 'Solicitar Contacto', level: 'h2' },
+            styles: { alignment: 'center' }
+          },
+          {
+            id: `el_${s.id || idx}_sub`,
+            type: 'PARAGRAPH',
+            content: { text: s.content?.subtitle || 'Déjanos tus datos.' },
+            styles: { alignment: 'center' }
+          },
+          {
+            id: `el_${s.id || idx}_widget`,
+            type: 'FORM',
+            content: { ctaText: s.content?.ctaText || 'Enviar' },
+            styles: {}
+          }
+        ]
+      });
+      break;
+
+    case 'RISK_REVERSAL':
+      columns.push({
+        id: `col_${s.id || idx}_1`,
+        width: '1',
+        elements: [
+          {
+            id: `el_${s.id || idx}_title`,
+            type: 'HEADING',
+            content: { text: s.content?.title || 'Garantía de Satisfacción', level: 'h2' },
+            styles: { alignment: 'center' }
+          },
+          {
+            id: `el_${s.id || idx}_desc`,
+            type: 'PARAGRAPH',
+            content: { text: s.content?.description || 'Te reembolsamos si no estás conforme.' },
+            styles: { alignment: 'center' }
+          },
+          {
+            id: `el_${s.id || idx}_days`,
+            type: 'PARAGRAPH',
+            content: { text: `Garantía válida por ${s.content?.days || 30} días.` },
+            styles: { alignment: 'center', bold: true }
+          }
+        ]
+      });
+      break;
+
+    case 'FOOTER_SECTION':
+      columns.push({
+        id: `col_${s.id || idx}_1`,
+        width: '1',
+        elements: [
+          {
+            id: `el_${s.id || idx}_copy`,
+            type: 'PARAGRAPH',
+            content: { text: s.content?.copyright || '© 2026 Todos los derechos reservados.' },
+            styles: { alignment: 'center' }
+          }
+        ]
+      });
+      break;
+
+    default:
+      columns.push({
+        id: `col_${s.id || idx}_1`,
+        width: '1',
+        elements: [
+          {
+            id: `el_${s.id || idx}_heading`,
+            type: 'HEADING',
+            content: { text: s.label || 'Sección', level: 'h2' },
+            styles: { alignment: 'center' }
+          }
+        ]
+      });
+  }
+
+  return {
+    id: s.id || `sec_grid_${idx}`,
+    type: 'GRID_SECTION',
+    order: typeof s.order === 'number' ? s.order : idx + 1,
+    visible: typeof s.visible === 'boolean' ? s.visible : true,
+    label: s.label || getLabelForType(s.type),
+    description: s.description || getDescForType(s.type),
+    styles,
+    columns
+  };
+}
+
+export function migrateSections(sections: any[], profile: BusinessProfile): LandingSection[] {
+  if (!Array.isArray(sections) || sections.length === 0) {
+    return defaultSections.map((s, idx) => migrateToGridSection(s, idx, profile));
+  }
+
+  return sections.map((s, idx) => migrateToGridSection(s, idx, profile));
 }
 
 export const palettes = [

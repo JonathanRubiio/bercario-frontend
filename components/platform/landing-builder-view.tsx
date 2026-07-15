@@ -382,31 +382,50 @@ export function LandingBuilderView() {
   }
 
   // Sincronizar edición inline (derecha) con el estado local
-  function handleInlineEdit(sectionId: string, fieldKey: string, newValue: string, index?: number, itemKey?: string) {
+  function handleInlineEdit(sectionId: string, fieldKey: string, newValue: string, index?: any, itemKey?: string) {
     setConfig(prev =>
       prev.map(item => {
-        if (item.id === sectionId) {
-          if (fieldKey === 'items' && typeof index === 'number' && itemKey) {
-            const currentItems = [...(item.content.items || [])]
-            currentItems[index] = {
-              ...currentItems[index],
-              [itemKey]: newValue
-            }
-            return {
-              ...item,
-              content: { ...item.content, items: currentItems }
-            }
-          } else {
-            return {
-              ...item,
-              content: {
-                ...item.content,
-                [fieldKey]: newValue,
-              },
-            }
+        if (item.id !== sectionId) return item
+        
+        // Element Widget nested edit
+        if (fieldKey === 'element_content' && index) {
+          const elementId = index;
+          const updatedColumns = (item.columns || []).map(col => {
+            const updatedElements = (col.elements || []).map(el => {
+              if (el.id !== elementId) return el
+              return {
+                ...el,
+                content: {
+                  ...el.content,
+                  [itemKey || 'text']: newValue
+                }
+              }
+            })
+            return { ...col, elements: updatedElements }
+          })
+          return { ...item, columns: updatedColumns }
+        }
+        
+        // Fallback standard fields
+        if (fieldKey === 'items' && typeof index === 'number' && itemKey) {
+          const currentItems = [...(item.content.items || [])]
+          currentItems[index] = {
+            ...currentItems[index],
+            [itemKey]: newValue
+          }
+          return {
+            ...item,
+            content: { ...item.content, items: currentItems }
+          }
+        } else {
+          return {
+            ...item,
+            content: {
+              ...(item.content || {}),
+              [fieldKey]: newValue,
+            },
           }
         }
-        return item
       })
     )
   }
@@ -523,6 +542,189 @@ export function LandingBuilderView() {
           return { ...item, [field]: val }
         })
         return { ...s, content: { ...s.content, items } }
+      })
+    )
+  }
+
+  function changeColumnsLayout(sectionId: string, colCount: number) {
+    setConfig((prev) =>
+      prev.map((s) => {
+        if (s.id !== sectionId) return s
+        const currentCols = s.columns || []
+        let newCols: any[] = []
+        if (colCount === 1) {
+          const allElements = currentCols.flatMap((c) => c.elements || [])
+          newCols = [
+            {
+              id: `col_${s.id}_1`,
+              width: '1',
+              elements: allElements
+            }
+          ]
+        } else if (colCount === 2) {
+          const col1Elements = currentCols[0]?.elements || []
+          const col2Elements = [
+            ...(currentCols[1]?.elements || []),
+            ...(currentCols[2]?.elements || [])
+          ]
+          newCols = [
+            { id: `col_${s.id}_1`, width: '1/2', elements: col1Elements },
+            { id: `col_${s.id}_2`, width: '1/2', elements: col2Elements }
+          ]
+        } else if (colCount === 3) {
+          const col1Elements = currentCols[0]?.elements || []
+          const col2Elements = currentCols[1]?.elements || []
+          const col3Elements = currentCols[2]?.elements || []
+          newCols = [
+            { id: `col_${s.id}_1`, width: '1/3', elements: col1Elements },
+            { id: `col_${s.id}_2`, width: '1/3', elements: col2Elements },
+            { id: `col_${s.id}_3`, width: '1/3', elements: col3Elements }
+          ]
+        }
+        return { ...s, columns: newCols }
+      })
+    )
+    
+    setTimeout(() => {
+      animateSelector('#preview-viewport-container div.grid', {
+        opacity: [0.8, 1],
+        duration: 350,
+        easing: 'easeOutExpo'
+      })
+    }, 30)
+  }
+
+  function addElement(sectionId: string, colIdx: number, type: string) {
+    const newElId = `el_${type.toLowerCase()}_${Date.now()}`
+    let content: any = {}
+    let styles: any = { alignment: 'left' }
+
+    if (type === 'HEADING') {
+      content = { text: 'Nuevo Título', level: 'h2' }
+    } else if (type === 'PARAGRAPH') {
+      content = { text: 'Texto del párrafo. Edítame haciendo doble clic.' }
+    } else if (type === 'IMAGE') {
+      content = { url: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&auto=format&fit=crop&q=80', alt: 'Imagen' }
+      styles = { borderRadius: 'lg', alignment: 'center' }
+    } else if (type === 'BUTTON') {
+      content = { text: 'Haz clic aquí', url: '#form' }
+      styles = { variant: 'solid', alignment: 'left' }
+    } else if (type === 'SPACER') {
+      content = { height: '24px' }
+    } else if (type === 'VIDEO') {
+      content = { url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' }
+    } else if (type === 'FORM') {
+      content = { ctaText: 'Registrarme' }
+    } else if (type === 'TESTIMONIAL') {
+      content = {
+        columns: 3,
+        items: [
+          { name: 'Cliente Satisfecho', role: 'Comerciante', comment: 'Excelente servicio.', rating: 5, avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80' }
+        ]
+      }
+    } else if (type === 'ACCORDION') {
+      content = {
+        items: [
+          { question: '¿Nueva Pregunta?', answer: 'Respuesta de ejemplo.' }
+        ]
+      }
+    }
+
+    setConfig((prev) =>
+      prev.map((s) => {
+        if (s.id !== sectionId) return s
+        const columns = (s.columns || []).map((col: any, idx: number) => {
+          if (idx !== colIdx) return col
+          return {
+            ...col,
+            elements: [...(col.elements || []), { id: newElId, type, content, styles }]
+          }
+        })
+        return { ...s, columns }
+      })
+    )
+
+    setTimeout(() => {
+      animateSelector(`#preview-section-${sectionId} div`, {
+        scale: [0.93, 1],
+        opacity: [0, 1],
+        duration: 350,
+        easing: 'easeOutBack'
+      })
+    }, 50)
+  }
+
+  function deleteElement(sectionId: string, colIdx: number, elIdx: number) {
+    setConfig((prev) =>
+      prev.map((s) => {
+        if (s.id !== sectionId) return s
+        const columns = (s.columns || []).map((col: any, idx: number) => {
+          if (idx !== colIdx) return col
+          return {
+            ...col,
+            elements: (col.elements || []).filter((_: any, i: number) => i !== elIdx)
+          }
+        })
+        return { ...s, columns }
+      })
+    )
+  }
+
+  function moveElement(sectionId: string, colIdx: number, elIdx: number, direction: 'up' | 'down') {
+    setConfig((prev) =>
+      prev.map((s) => {
+        if (s.id !== sectionId) return s
+        const columns = (s.columns || []).map((col: any, idx: number) => {
+          if (idx !== colIdx) return col
+          const elements = [...(col.elements || [])]
+          const targetIdx = direction === 'up' ? elIdx - 1 : elIdx + 1
+          if (targetIdx < 0 || targetIdx >= elements.length) return col
+          
+          const temp = elements[elIdx]
+          elements[elIdx] = elements[targetIdx]
+          elements[targetIdx] = temp
+          return { ...col, elements }
+        })
+        return { ...s, columns }
+      })
+    )
+  }
+
+  function moveElementToColumn(sectionId: string, fromColIdx: number, toColIdx: number, elIdx: number) {
+    setConfig((prev) =>
+      prev.map((s) => {
+        if (s.id !== sectionId) return s
+        const cols = [...(s.columns || [])]
+        if (!cols[fromColIdx] || !cols[toColIdx]) return s
+        
+        const el = cols[fromColIdx].elements[elIdx]
+        cols[fromColIdx].elements = cols[fromColIdx].elements.filter((_: any, i: number) => i !== elIdx)
+        cols[toColIdx].elements = [...(cols[toColIdx].elements || []), el]
+        
+        return { ...s, columns: cols }
+      })
+    )
+  }
+
+  function updateElementProperty(sectionId: string, colIdx: number, elIdx: number, key: 'content' | 'styles', propName: string, val: any) {
+    setConfig((prev) =>
+      prev.map((s) => {
+        if (s.id !== sectionId) return s
+        const columns = (s.columns || []).map((col: any, idx: number) => {
+          if (idx !== colIdx) return col
+          const elements = (col.elements || []).map((el: any, i: number) => {
+            if (i !== elIdx) return el
+            return {
+              ...el,
+              [key]: {
+                ...(el[key] || {}),
+                [propName]: val
+              }
+            }
+          })
+          return { ...col, elements }
+        })
+        return { ...s, columns }
       })
     )
   }
@@ -742,6 +944,194 @@ export function LandingBuilderView() {
                       ))}
                     </div>
                   </div>
+
+                  {/* Formulario de Rejilla Modular GRID_SECTION */}
+                  {activeSection.type === 'GRID_SECTION' && (
+                    <div className="space-y-6">
+                      <div className="grid gap-1.5 border-b border-border/40 pb-4">
+                        <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">
+                          Distribución de Columnas
+                        </Label>
+                        <div className="flex gap-2">
+                          {[
+                            { count: 1, label: '1 Col (100%)' },
+                            { count: 2, label: '2 Col (50/50)' },
+                            { count: 3, label: '3 Col (33/33/33)' }
+                          ].map((colOpt) => (
+                            <Button
+                              key={colOpt.count}
+                              type="button"
+                              variant={(activeSection.columns?.length || 1) === colOpt.count ? 'secondary' : 'outline'}
+                              size="sm"
+                              className="flex-1 text-xs"
+                              onClick={() => changeColumnsLayout(activeSection.id, colOpt.count)}
+                            >
+                              {colOpt.label}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        {(activeSection.columns || []).map((col: any, colIdx: number) => (
+                          <Card key={col.id} className="p-3.5 border border-border bg-card rounded-xl space-y-3 shadow-none">
+                            <div className="flex justify-between items-center border-b border-border/30 pb-2">
+                              <span className="text-xs font-bold text-foreground">
+                                Columna {colIdx + 1} ({col.width === '1' ? '100%' : col.width === '1/2' ? '50%' : '33%'})
+                              </span>
+                              <Badge variant="outline" className="text-[9px] px-1 py-0 border-border/60">
+                                {col.elements?.length || 0} widgets
+                              </Badge>
+                            </div>
+
+                            <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1 scrollbar-thin">
+                              {(col.elements || []).map((el: any, elIdx: number) => (
+                                <div key={el.id} className="flex flex-col gap-2 p-2 rounded-lg bg-background border border-border hover:border-primary/20 transition-all text-left">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-[10px] uppercase font-bold text-primary font-mono scale-90">
+                                        {el.type}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-5 w-5 rounded-md"
+                                        disabled={elIdx === 0}
+                                        onClick={() => moveElement(activeSection.id, colIdx, elIdx, 'up')}
+                                      >
+                                        <ArrowUp className="h-3 w-3" />
+                                      </Button>
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-5 w-5 rounded-md"
+                                        disabled={elIdx === col.elements.length - 1}
+                                        onClick={() => moveElement(activeSection.id, colIdx, elIdx, 'down')}
+                                      >
+                                        <ArrowDown className="h-3 w-3" />
+                                      </Button>
+                                      {(activeSection.columns || []).length > 1 && (
+                                        <Button
+                                          size="icon"
+                                          variant="ghost"
+                                          className="h-5 w-5 rounded-md text-muted-foreground hover:bg-muted"
+                                          title="Mover a otra columna"
+                                          onClick={() => {
+                                            const destCol = colIdx === 0 ? 1 : 0;
+                                            moveElementToColumn(activeSection.id, colIdx, destCol, elIdx);
+                                          }}
+                                        >
+                                          <Layout className="h-3 w-3" />
+                                        </Button>
+                                      )}
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-5 w-5 rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                                        onClick={() => deleteElement(activeSection.id, colIdx, elIdx)}
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  </div>
+
+                                  <div className="grid gap-1 border-t border-border/10 pt-1.5">
+                                    {el.type === 'HEADING' && (
+                                      <div className="grid grid-cols-[80px_1fr] gap-1.5 items-center">
+                                        <Label className="text-[10px] text-muted-foreground">Etiqueta</Label>
+                                        <select
+                                          value={el.content.level || 'h2'}
+                                          onChange={(e) => updateElementProperty(activeSection.id, colIdx, elIdx, 'content', 'level', e.target.value)}
+                                          className="h-6 text-[10px] rounded border border-border bg-card px-1"
+                                        >
+                                          <option value="h1">H1 (Grande)</option>
+                                          <option value="h2">H2 (Medio)</option>
+                                          <option value="h3">H3 (Subtítulo)</option>
+                                          <option value="h4">H4 (Chico)</option>
+                                        </select>
+                                      </div>
+                                    )}
+                                    {el.type === 'BUTTON' && (
+                                      <div className="grid grid-cols-[80px_1fr] gap-1.5 items-center">
+                                        <Label className="text-[10px] text-muted-foreground">Enlace (URL)</Label>
+                                        <Input
+                                          value={el.content.url || ''}
+                                          onChange={(e) => updateElementProperty(activeSection.id, colIdx, elIdx, 'content', 'url', e.target.value)}
+                                          className="h-6 text-[10px] px-1.5"
+                                          placeholder="#form"
+                                        />
+                                      </div>
+                                    )}
+                                    {el.type === 'IMAGE' && (
+                                      <div className="grid grid-cols-[80px_1fr] gap-1.5 items-center">
+                                        <Label className="text-[10px] text-muted-foreground">Imagen</Label>
+                                        <Button
+                                          type="button"
+                                          variant="outline"
+                                          size="sm"
+                                          className="h-6 text-[10px] py-0 px-2 flex gap-1"
+                                          onClick={() => {
+                                            setMediaTarget({ sectionId: activeSection.id, contentKey: `element_image_${el.id}` })
+                                            setMediaOpen(true)
+                                          }}
+                                        >
+                                          Elegir Imagen
+                                        </Button>
+                                      </div>
+                                    )}
+                                    {el.type === 'VIDEO' && (
+                                      <div className="grid grid-cols-[80px_1fr] gap-1.5 items-center">
+                                        <Label className="text-[10px] text-muted-foreground">Video URL</Label>
+                                        <Input
+                                          value={el.content.url || ''}
+                                          onChange={(e) => updateElementProperty(activeSection.id, colIdx, elIdx, 'content', 'url', e.target.value)}
+                                          className="h-6 text-[10px] px-1.5"
+                                          placeholder="https://youtube.com/..."
+                                        />
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                              {(!col.elements || col.elements.length === 0) && (
+                                <div className="text-center py-4 border border-dashed border-border/40 rounded-lg text-muted-foreground text-[10px] italic">
+                                  Columna vacía
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="pt-2 border-t border-border/30">
+                              <Label className="text-[9px] font-bold text-muted-foreground uppercase block mb-1">
+                                + Añadir Widget a Col {colIdx + 1}
+                              </Label>
+                              <div className="grid grid-cols-3 gap-1">
+                                {[
+                                  { type: 'HEADING', label: 'Título/H1' },
+                                  { type: 'PARAGRAPH', label: 'Texto' },
+                                  { type: 'IMAGE', label: 'Imagen' },
+                                  { type: 'BUTTON', label: 'Botón' },
+                                  { type: 'VIDEO', label: 'Video' },
+                                  { type: 'SPACER', label: 'Espacio' }
+                                ].map((w) => (
+                                  <button
+                                    key={w.type}
+                                    type="button"
+                                    onClick={() => addElement(activeSection.id, colIdx, w.type)}
+                                    className="h-6 text-[9px] rounded border border-border hover:bg-muted hover:border-primary/20 transition-all font-medium"
+                                  >
+                                    {w.label}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                    {/* Formulario Específico de HERO_BANNER */}
                   {activeSection.type === 'HERO_BANNER' && (
                     <div className="space-y-3">
