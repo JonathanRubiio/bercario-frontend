@@ -1,8 +1,10 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Reveal, RevealStagger } from '@/components/ui/scroll-reveal'
+import { Loader2 } from 'lucide-react'
 import {
   TrendingUp,
   Eye,
@@ -14,9 +16,11 @@ import {
   Quote,
 } from 'lucide-react'
 import Link from 'next/link'
+import { marketingService, type SuccessStory, type BlogPost } from '@/lib/api/services/marketing'
 
-const successStories = [
+const fallbackSuccessStories = [
   {
+    id: '1',
     merchant: 'Calzado La Frontera',
     location: 'Cúcuta',
     owner: 'Héctor Delgado',
@@ -29,6 +33,7 @@ const successStories = [
     avatar: 'CF',
   },
   {
+    id: '2',
     merchant: 'Modas El Progreso',
     location: 'Atalaya, Cúcuta',
     owner: 'Rosaura Beltrán',
@@ -41,6 +46,7 @@ const successStories = [
     avatar: 'MP',
   },
   {
+    id: '3',
     merchant: 'Marroquinería Santander',
     location: 'Villa del Rosario',
     owner: 'Camilo Jaimes',
@@ -54,8 +60,9 @@ const successStories = [
   },
 ]
 
-const blogPosts = [
+const fallbackBlogPosts = [
   {
+    id: '1',
     title: 'Cómo digitalizar tu catálogo mayorista sin perder el trato humano',
     excerpt: 'Aprende a estructurar tus categorías de productos y precios al por mayor para facilitar la compra digital manteniendo el contacto directo por WhatsApp.',
     date: 'Julio 10, 2026',
@@ -64,6 +71,7 @@ const blogPosts = [
     category: 'Estrategia',
   },
   {
+    id: '2',
     title: '5 claves de SEO Local para que tenderos de todo el país te encuentren en Google',
     excerpt: 'Guía práctica para posicionar tu bodega o fábrica mayorista en Cúcuta en las búsquedas locales. Trucos de palabras clave y optimización técnica.',
     date: 'Julio 02, 2026',
@@ -72,6 +80,7 @@ const blogPosts = [
     category: 'SEO',
   },
   {
+    id: '3',
     title: 'El poder de las Landings Modulares: Por qué no necesitas una web compleja',
     excerpt: 'Descubre por qué las páginas de aterrizaje sencillas y rápidas convierten un 40% más que las tiendas virtuales tradicionales llenas de opciones confusas.',
     date: 'Junio 26, 2026',
@@ -82,6 +91,39 @@ const blogPosts = [
 ]
 
 export default function SuccessStoriesPage() {
+  const [successStories, setSuccessStories] = useState<SuccessStory[]>([])
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [storiesData, postsData] = await Promise.all([
+          marketingService.getSuccessStories(),
+          marketingService.getBlogPosts(),
+        ])
+        setSuccessStories(storiesData && storiesData.length > 0 ? storiesData : fallbackSuccessStories)
+        setBlogPosts(postsData && postsData.length > 0 ? postsData : fallbackBlogPosts)
+      } catch (err) {
+        console.error('Error fetching marketing data, using fallbacks:', err)
+        setSuccessStories(fallbackSuccessStories)
+        setBlogPosts(fallbackBlogPosts)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center bg-background gap-3">
+        <Loader2 className="h-8 w-8 text-primary animate-spin" />
+        <p className="text-xs text-muted-foreground animate-pulse">Cargando casos de éxito y blog...</p>
+      </div>
+    )
+  }
+
   return (
     <div className="py-12 md:py-20 bg-background overflow-hidden">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
