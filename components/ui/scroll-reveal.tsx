@@ -93,7 +93,7 @@ export function RevealStagger({
             animate(Array.from(targetElements), {
               opacity: [0, 1],
               translateY: [yOffset, 0],
-              delay: (_, i) => i * delay,
+              delay: (_, i) => (i ?? 0) * delay,
               duration: duration,
               easing: 'easeOutQuad'
             })

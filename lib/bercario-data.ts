@@ -54,6 +54,10 @@ export type SectionType =
   | 'RISK_REVERSAL'
   | 'FAQ_ACCORDION'
   | 'FOOTER_SECTION'
+  | 'PRODUCTS_LIST'
+  | 'CONTACT_INFO'
+  | 'FEATURES_LIST'
+  | 'FAQ'
 
 export type LandingSection = {
   id: string

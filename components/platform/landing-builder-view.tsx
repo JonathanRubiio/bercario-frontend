@@ -8,6 +8,14 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { 
   ArrowUp, 
   ArrowDown, 
@@ -77,6 +85,20 @@ export function LandingBuilderView() {
   // Estados para Gestor de Media Centralizado
   const [mediaOpen, setMediaOpen] = useState(false)
   const [mediaTarget, setMediaTarget] = useState<'logo' | 'banner' | { sectionId: string; contentKey: string } | null>(null)
+
+  // Estados para diálogos de alerta y confirmación personalizados
+  const [confirmModal, setConfirmModal] = useState<{
+    open: boolean
+    title: string
+    message: string
+    onConfirm: () => void
+  } | null>(null)
+
+  const [alertModal, setAlertModal] = useState<{
+    open: boolean
+    title: string
+    message: string
+  } | null>(null)
 
   function handleMediaSelect(url: string) {
     if (!mediaTarget) return
@@ -172,10 +194,18 @@ export function LandingBuilderView() {
       setGlobalStyles(data.globalStyles)
       const migrated = migrateSections(data.landingConfig || [], profile)
       setConfig(migrated)
-      alert('Configuración de la landing guardada con éxito.')
+      setAlertModal({
+        open: true,
+        title: '¡Guardado exitoso!',
+        message: 'La configuración de tu landing page se ha guardado correctamente en la base de datos.'
+      })
     } catch (err: any) {
       console.error('Error al guardar la landing config:', err)
-      alert(err.message || 'Error al guardar los cambios.')
+      setAlertModal({
+        open: true,
+        title: 'Error al guardar',
+        message: err.message || 'Ocurrió un error inesperado al intentar guardar los cambios.'
+      })
     } finally {
       setSaving(false)
     }
@@ -183,31 +213,36 @@ export function LandingBuilderView() {
 
   // Sobrescribir plantilla
   function applyTemplate(tpl: any) {
-    if (window.confirm(`¿Estás seguro de que deseas aplicar la plantilla "${tpl.name}"? Se sobrescribirá tu configuración de secciones y estilos actuales.`)) {
-      setTemplateId(tpl.id)
-      setGlobalStyles(tpl.globalStyles)
-      
-      const adaptedConfig = tpl.landingConfig.map((s: any) => {
-        const sCopy = JSON.parse(JSON.stringify(s))
-        if (sCopy.type === 'HERO_BANNER') {
-          sCopy.content.title = profile?.name || sCopy.content.title
-          sCopy.content.subtitle = profile?.tagline || sCopy.content.subtitle
-        } else if (sCopy.type === 'ABOUT_US') {
-          sCopy.content.description = profile?.description || sCopy.content.description
-        } else if (sCopy.type === 'CONTACT_INFO') {
-          sCopy.content.phone = profile?.phone || sCopy.content.phone
-          sCopy.content.email = profile?.email || sCopy.content.email
-          sCopy.content.address = profile?.address || sCopy.content.address
-        }
-        return sCopy
-      })
+    setConfirmModal({
+      open: true,
+      title: '¿Confirmas aplicar esta plantilla?',
+      message: `Estás seguro de que deseas aplicar la plantilla "${tpl.name}". Ten en cuenta que esto sobrescribirá tu configuración de secciones y estilos actuales en el constructor.`,
+      onConfirm: () => {
+        setTemplateId(tpl.id)
+        setGlobalStyles(tpl.globalStyles)
+        
+        const adaptedConfig = tpl.landingConfig.map((s: any) => {
+          const sCopy = JSON.parse(JSON.stringify(s))
+          if (sCopy.type === 'HERO_BANNER') {
+            sCopy.content.title = profile?.name || sCopy.content.title
+            sCopy.content.subtitle = profile?.tagline || sCopy.content.subtitle
+          } else if (sCopy.type === 'ABOUT_US') {
+            sCopy.content.description = profile?.description || sCopy.content.description
+          } else if (sCopy.type === 'CONTACT_INFO') {
+            sCopy.content.phone = profile?.phone || sCopy.content.phone
+            sCopy.content.email = profile?.email || sCopy.content.email
+            sCopy.content.address = profile?.address || sCopy.content.address
+          }
+          return sCopy
+        })
 
-      const sorted = adaptedConfig.sort((a: any, b: any) => a.order - b.order)
-      setConfig(sorted)
-      if (sorted.length > 0) {
-        setActiveSectionId(sorted[0].id)
+        const sorted = adaptedConfig.sort((a: any, b: any) => a.order - b.order)
+        setConfig(sorted)
+        if (sorted.length > 0) {
+          setActiveSectionId(sorted[0].id)
+        }
       }
-    }
+    })
   }
 
   // Operaciones de agregar/eliminar secciones
@@ -459,6 +494,39 @@ export function LandingBuilderView() {
     )
   }
 
+  function addListItem(sectionId: string, defaultItem: any) {
+    setConfig((prev) =>
+      prev.map((s) => {
+        if (s.id !== sectionId) return s
+        const items = [...(s.content.items || []), defaultItem]
+        return { ...s, content: { ...s.content, items } }
+      })
+    )
+  }
+
+  function removeListItem(sectionId: string, idx: number) {
+    setConfig((prev) =>
+      prev.map((s) => {
+        if (s.id !== sectionId) return s
+        const items = (s.content.items || []).filter((_: any, i: number) => i !== idx)
+        return { ...s, content: { ...s.content, items } }
+      })
+    )
+  }
+
+  function updateListItem(sectionId: string, idx: number, field: string, val: any) {
+    setConfig((prev) =>
+      prev.map((s) => {
+        if (s.id !== sectionId) return s
+        const items = (s.content.items || []).map((item: any, i: number) => {
+          if (i !== idx) return item
+          return { ...item, [field]: val }
+        })
+        return { ...s, content: { ...s.content, items } }
+      })
+    )
+  }
+
   if (loading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
@@ -674,8 +742,7 @@ export function LandingBuilderView() {
                       ))}
                     </div>
                   </div>
-
-                  {/* Formulario Específico de HERO_BANNER */}
+                   {/* Formulario Específico de HERO_BANNER */}
                   {activeSection.type === 'HERO_BANNER' && (
                     <div className="space-y-3">
                       <div className="grid gap-1.5">
@@ -710,11 +777,33 @@ export function LandingBuilderView() {
                             id="b-ctaUrl"
                             value={activeSection.content.ctaUrl || ''}
                             onChange={(e) => handleContentChange(activeSection.id, 'ctaUrl', e.target.value)}
-                            placeholder="Ej. /catalog"
+                            placeholder="Ej. #form"
                           />
                         </div>
                       </div>
-                      
+                      <div className="grid gap-1.5">
+                        <Label className="text-xs">Composición del Banner</Label>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant={activeSection.content.layoutDirection === 'left-to-right' ? 'secondary' : 'outline'}
+                            size="sm"
+                            className="flex-1 text-xs"
+                            onClick={() => handleContentChange(activeSection.id, 'layoutDirection', 'left-to-right')}
+                          >
+                            Texto Izq / Imagen Der
+                          </Button>
+                          <Button
+                            type="button"
+                            variant={activeSection.content.layoutDirection === 'right-to-left' ? 'secondary' : 'outline'}
+                            size="sm"
+                            className="flex-1 text-xs"
+                            onClick={() => handleContentChange(activeSection.id, 'layoutDirection', 'right-to-left')}
+                          >
+                            Imagen Izq / Texto Der
+                          </Button>
+                        </div>
+                      </div>
                       <div className="grid grid-cols-2 gap-3 border-t border-border/40 pt-2.5">
                         <div className="grid gap-1.5">
                           <Label className="text-xs">Logo del Negocio</Label>
@@ -752,6 +841,258 @@ export function LandingBuilderView() {
                     </div>
                   )}
 
+                  {/* Formulario Específico de EMPATHY_SECTION */}
+                  {activeSection.type === 'EMPATHY_SECTION' && (
+                    <div className="space-y-3">
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="emp-title" className="text-xs">Título del Dolor</Label>
+                        <Input
+                          id="emp-title"
+                          value={activeSection.content.title || ''}
+                          onChange={(e) => handleContentChange(activeSection.id, 'title', e.target.value)}
+                        />
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="emp-desc" className="text-xs">Descripción (Empatía / Dolor)</Label>
+                        <Textarea
+                          id="emp-desc"
+                          rows={4}
+                          value={activeSection.content.description || ''}
+                          onChange={(e) => handleContentChange(activeSection.id, 'description', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Formulario Específico de SOLUTION_OFFER */}
+                  {activeSection.type === 'SOLUTION_OFFER' && (
+                    <div className="space-y-3">
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="sol-title" className="text-xs">Título de la Oferta</Label>
+                        <Input
+                          id="sol-title"
+                          value={activeSection.content.title || ''}
+                          onChange={(e) => handleContentChange(activeSection.id, 'title', e.target.value)}
+                        />
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="sol-desc" className="text-xs">Descripción Persuasiva</Label>
+                        <Textarea
+                          id="sol-desc"
+                          rows={4}
+                          value={activeSection.content.description || ''}
+                          onChange={(e) => handleContentChange(activeSection.id, 'description', e.target.value)}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="grid gap-1.5">
+                          <Label htmlFor="sol-cta" className="text-xs">Texto Botón</Label>
+                          <Input
+                            id="sol-cta"
+                            value={activeSection.content.ctaText || ''}
+                            onChange={(e) => handleContentChange(activeSection.id, 'ctaText', e.target.value)}
+                          />
+                        </div>
+                        <div className="grid gap-1.5">
+                          <Label htmlFor="sol-ctaUrl" className="text-xs">Enlace Botón (URL)</Label>
+                          <Input
+                            id="sol-ctaUrl"
+                            value={activeSection.content.ctaUrl || ''}
+                            onChange={(e) => handleContentChange(activeSection.id, 'ctaUrl', e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label className="text-xs">Composición de la Oferta</Label>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant={activeSection.content.layoutDirection === 'left-to-right' ? 'secondary' : 'outline'}
+                            size="sm"
+                            className="flex-1 text-xs"
+                            onClick={() => handleContentChange(activeSection.id, 'layoutDirection', 'left-to-right')}
+                          >
+                            Texto Izq / Imagen Der
+                          </Button>
+                          <Button
+                            type="button"
+                            variant={activeSection.content.layoutDirection === 'right-to-left' ? 'secondary' : 'outline'}
+                            size="sm"
+                            className="flex-1 text-xs"
+                            onClick={() => handleContentChange(activeSection.id, 'layoutDirection', 'right-to-left')}
+                          >
+                            Imagen Izq / Texto Der
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label className="text-xs">Imagen Destacada</Label>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 text-xs flex gap-1.5 w-full"
+                          onClick={() => {
+                            setMediaTarget({ sectionId: activeSection.id, contentKey: 'imageUrl' })
+                            setMediaOpen(true)
+                          }}
+                        >
+                          <ImageIcon className="h-3.5 w-3.5 text-primary" />
+                          Seleccionar Imagen
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Formulario Específico de VALUE_PROP */}
+                  {activeSection.type === 'VALUE_PROP' && (
+                    <div className="space-y-4">
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="val-title" className="text-xs">Título del Bloque</Label>
+                        <Input
+                          id="val-title"
+                          value={activeSection.content.title || ''}
+                          onChange={(e) => handleContentChange(activeSection.id, 'title', e.target.value)}
+                        />
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label className="text-xs">Columnas en Pantalla</Label>
+                        <div className="flex gap-1.5">
+                          {[2, 3, 4].map((col) => (
+                            <Button
+                              key={col}
+                              type="button"
+                              variant={activeSection.content.columns === col ? 'secondary' : 'outline'}
+                              size="sm"
+                              className="flex-1 text-xs"
+                              onClick={() => handleContentChange(activeSection.id, 'columns', col)}
+                            >
+                              {col} Col
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
+                          Beneficios / Propuestas de Valor
+                        </Label>
+                        <div className="grid gap-2">
+                          {(activeSection.content.items || []).map((item: any, idx: number) => (
+                            <Card key={idx} className="p-3 border border-border bg-background rounded-lg relative group/item">
+                              <button
+                                type="button"
+                                onClick={() => removeListItem(activeSection.id, idx)}
+                                className="absolute right-2 top-2 h-5 w-5 flex items-center justify-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive opacity-0 group-hover/item:opacity-100 transition-all duration-200"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                              <div className="grid gap-2">
+                                <div className="grid gap-0.5">
+                                  <Label className="text-[10px] text-muted-foreground">Título del Beneficio</Label>
+                                  <Input
+                                    value={item.title || ''}
+                                    onChange={(e) => updateListItem(activeSection.id, idx, 'title', e.target.value)}
+                                    className="h-7 text-xs"
+                                  />
+                                </div>
+                                <div className="grid gap-0.5">
+                                  <Label className="text-[10px] text-muted-foreground">Descripción Corta</Label>
+                                  <Textarea
+                                    rows={2}
+                                    value={item.description || ''}
+                                    onChange={(e) => updateListItem(activeSection.id, idx, 'description', e.target.value)}
+                                    className="text-xs py-1 min-h-[50px] resize-none"
+                                  />
+                                </div>
+                              </div>
+                            </Card>
+                          ))}
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="rounded-lg border border-dashed border-border text-[11px] w-full py-2.5 h-auto"
+                          onClick={() => addListItem(activeSection.id, { title: 'Nuevo Beneficio', description: 'Detalle del beneficio.' })}
+                        >
+                          <Plus className="mr-1 h-3 w-3" /> Agregar Beneficio
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Formulario Específico de HOW_IT_WORKS */}
+                  {activeSection.type === 'HOW_IT_WORKS' && (
+                    <div className="space-y-4">
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="how-title" className="text-xs">Título del Proceso</Label>
+                        <Input
+                          id="how-title"
+                          value={activeSection.content.title || ''}
+                          onChange={(e) => handleContentChange(activeSection.id, 'title', e.target.value)}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
+                          Pasos del Proceso
+                        </Label>
+                        <div className="grid gap-2">
+                          {(activeSection.content.items || []).map((item: any, idx: number) => (
+                            <Card key={idx} className="p-3 border border-border bg-background rounded-lg relative group/item">
+                              <button
+                                type="button"
+                                onClick={() => removeListItem(activeSection.id, idx)}
+                                className="absolute right-2 top-2 h-5 w-5 flex items-center justify-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive opacity-0 group-hover/item:opacity-100 transition-all duration-200"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                              <div className="grid gap-2">
+                                <div className="grid grid-cols-[50px_1fr] gap-2">
+                                  <div className="grid gap-0.5">
+                                    <Label className="text-[10px] text-muted-foreground">Paso #</Label>
+                                    <Input
+                                      value={item.step || ''}
+                                      onChange={(e) => updateListItem(activeSection.id, idx, 'step', e.target.value)}
+                                      className="h-7 text-xs text-center"
+                                    />
+                                  </div>
+                                  <div className="grid gap-0.5">
+                                    <Label className="text-[10px] text-muted-foreground">Título</Label>
+                                    <Input
+                                      value={item.title || ''}
+                                      onChange={(e) => updateListItem(activeSection.id, idx, 'title', e.target.value)}
+                                      className="h-7 text-xs"
+                                    />
+                                  </div>
+                                </div>
+                                <div className="grid gap-0.5">
+                                  <Label className="text-[10px] text-muted-foreground">Detalles del Paso</Label>
+                                  <Textarea
+                                    rows={2}
+                                    value={item.description || ''}
+                                    onChange={(e) => updateListItem(activeSection.id, idx, 'description', e.target.value)}
+                                    className="text-xs py-1 min-h-[50px] resize-none"
+                                  />
+                                </div>
+                              </div>
+                            </Card>
+                          ))}
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="rounded-lg border border-dashed border-border text-[11px] w-full py-2.5 h-auto"
+                          onClick={() => addListItem(activeSection.id, { step: `${(activeSection.content.items?.length || 0) + 1}`, title: 'Nuevo Paso', description: 'Detalle de la acción.' })}
+                        >
+                          <Plus className="mr-1 h-3 w-3" /> Agregar Paso
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Formulario Específico de ABOUT_US */}
                   {activeSection.type === 'ABOUT_US' && (
                     <div className="space-y-3">
@@ -764,7 +1105,7 @@ export function LandingBuilderView() {
                         />
                       </div>
                       <div className="grid gap-1.5">
-                        <Label htmlFor="a-desc" className="text-xs">Descripción</Label>
+                        <Label htmlFor="a-desc" className="text-xs">Biografía / Trayectoria</Label>
                         <Textarea
                           id="a-desc"
                           rows={5}
@@ -772,10 +1113,266 @@ export function LandingBuilderView() {
                           onChange={(e) => handleContentChange(activeSection.id, 'description', e.target.value)}
                         />
                       </div>
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="a-signature" className="text-xs">Firma Autoridad (ej. Nombre del fundador / cargo)</Label>
+                        <Input
+                          id="a-signature"
+                          value={activeSection.content.signature || ''}
+                          onChange={(e) => handleContentChange(activeSection.id, 'signature', e.target.value)}
+                        />
+                      </div>
                     </div>
                   )}
 
-                  {/* Formulario Específico de PRODUCTS_LIST */}
+                  {/* Formulario Específico de TESTIMONIALS */}
+                  {activeSection.type === 'TESTIMONIALS' && (
+                    <div className="space-y-4">
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="t-title" className="text-xs">Título del Bloque</Label>
+                        <Input
+                          id="t-title"
+                          value={activeSection.content.title || ''}
+                          onChange={(e) => handleContentChange(activeSection.id, 'title', e.target.value)}
+                        />
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label className="text-xs">Columnas en Pantalla</Label>
+                        <div className="flex gap-1.5">
+                          {[2, 3, 4].map((col) => (
+                            <Button
+                              key={col}
+                              type="button"
+                              variant={activeSection.content.columns === col ? 'secondary' : 'outline'}
+                              size="sm"
+                              className="flex-1 text-xs"
+                              onClick={() => handleContentChange(activeSection.id, 'columns', col)}
+                            >
+                              {col} Col
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
+                          Testimonios Recibidos
+                        </Label>
+                        <div className="grid gap-2">
+                          {(activeSection.content.items || []).map((item: any, idx: number) => (
+                            <Card key={idx} className="p-3 border border-border bg-background rounded-lg relative group/item">
+                              <button
+                                type="button"
+                                onClick={() => removeListItem(activeSection.id, idx)}
+                                className="absolute right-2 top-2 h-5 w-5 flex items-center justify-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive opacity-0 group-hover/item:opacity-100 transition-all duration-200"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                              <div className="grid gap-2">
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div className="grid gap-0.5">
+                                    <Label className="text-[10px] text-muted-foreground">Nombre</Label>
+                                    <Input
+                                      value={item.name || ''}
+                                      onChange={(e) => updateListItem(activeSection.id, idx, 'name', e.target.value)}
+                                      className="h-7 text-xs"
+                                    />
+                                  </div>
+                                  <div className="grid gap-0.5">
+                                    <Label className="text-[10px] text-muted-foreground">Cargo / Referencia</Label>
+                                    <Input
+                                      value={item.role || ''}
+                                      onChange={(e) => updateListItem(activeSection.id, idx, 'role', e.target.value)}
+                                      className="h-7 text-xs"
+                                    />
+                                  </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div className="grid gap-0.5">
+                                    <Label className="text-[10px] text-muted-foreground">Calificación (1-5)</Label>
+                                    <Input
+                                      type="number"
+                                      min={1}
+                                      max={5}
+                                      value={item.rating || 5}
+                                      onChange={(e) => updateListItem(activeSection.id, idx, 'rating', parseInt(e.target.value) || 5)}
+                                      className="h-7 text-xs"
+                                    />
+                                  </div>
+                                  <div className="grid gap-0.5">
+                                    <Label className="text-[10px] text-muted-foreground">URL Avatar (Opcional)</Label>
+                                    <Input
+                                      value={item.avatarUrl || ''}
+                                      onChange={(e) => updateListItem(activeSection.id, idx, 'avatarUrl', e.target.value)}
+                                      placeholder="https://..."
+                                      className="h-7 text-xs"
+                                    />
+                                  </div>
+                                </div>
+                                <div className="grid gap-0.5">
+                                  <Label className="text-[10px] text-muted-foreground">Comentario</Label>
+                                  <Textarea
+                                    rows={2}
+                                    value={item.comment || ''}
+                                    onChange={(e) => updateListItem(activeSection.id, idx, 'comment', e.target.value)}
+                                    className="text-xs py-1 min-h-[50px] resize-none"
+                                  />
+                                </div>
+                              </div>
+                            </Card>
+                          ))}
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="rounded-lg border border-dashed border-border text-[11px] w-full py-2.5 h-auto"
+                          onClick={() => addListItem(activeSection.id, { name: 'Cliente Satisfecho', role: 'Comerciante', comment: 'Excelente servicio.', rating: 5, avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80' })}
+                        >
+                          <Plus className="mr-1 h-3 w-3" /> Agregar Testimonio
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Formulario Específico de CONVERSION_FORM */}
+                  {activeSection.type === 'CONVERSION_FORM' && (
+                    <div className="space-y-3">
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="conv-title" className="text-xs">Título del Formulario</Label>
+                        <Input
+                          id="conv-title"
+                          value={activeSection.content.title || ''}
+                          onChange={(e) => handleContentChange(activeSection.id, 'title', e.target.value)}
+                        />
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="conv-subtitle" className="text-xs">Subtítulo / Instrucciones</Label>
+                        <Textarea
+                          id="conv-subtitle"
+                          rows={2}
+                          value={activeSection.content.subtitle || ''}
+                          onChange={(e) => handleContentChange(activeSection.id, 'subtitle', e.target.value)}
+                        />
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="conv-cta" className="text-xs">Texto del Botón CTA</Label>
+                        <Input
+                          id="conv-cta"
+                          value={activeSection.content.ctaText || ''}
+                          onChange={(e) => handleContentChange(activeSection.id, 'ctaText', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Formulario Específico de RISK_REVERSAL */}
+                  {activeSection.type === 'RISK_REVERSAL' && (
+                    <div className="space-y-3">
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="risk-title" className="text-xs">Título de Garantía</Label>
+                        <Input
+                          id="risk-title"
+                          value={activeSection.content.title || ''}
+                          onChange={(e) => handleContentChange(activeSection.id, 'title', e.target.value)}
+                        />
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="risk-desc" className="text-xs">Descripción del Respaldo</Label>
+                        <Textarea
+                          id="risk-desc"
+                          rows={3}
+                          value={activeSection.content.description || ''}
+                          onChange={(e) => handleContentChange(activeSection.id, 'description', e.target.value)}
+                        />
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="risk-days" className="text-xs">Días de Garantía</Label>
+                        <Input
+                          id="risk-days"
+                          type="number"
+                          value={activeSection.content.days || 30}
+                          onChange={(e) => handleContentChange(activeSection.id, 'days', parseInt(e.target.value) || 30)}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Formulario Específico de FAQ_ACCORDION */}
+                  {activeSection.type === 'FAQ_ACCORDION' && (
+                    <div className="space-y-4">
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="faq-title" className="text-xs">Título</Label>
+                        <Input
+                          id="faq-title"
+                          value={activeSection.content.title || ''}
+                          onChange={(e) => handleContentChange(activeSection.id, 'title', e.target.value)}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
+                          Preguntas y Respuestas
+                        </Label>
+                        <div className="grid gap-2">
+                          {(activeSection.content.items || []).map((item: any, idx: number) => (
+                            <Card key={idx} className="p-3 border border-border bg-background rounded-lg relative group/item">
+                              <button
+                                type="button"
+                                onClick={() => removeListItem(activeSection.id, idx)}
+                                className="absolute right-2 top-2 h-5 w-5 flex items-center justify-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive opacity-0 group-hover/item:opacity-100 transition-all duration-200"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                              <div className="grid gap-2">
+                                <div className="grid gap-0.5">
+                                  <Label className="text-[10px] text-muted-foreground">Pregunta</Label>
+                                  <Input
+                                    value={item.question || ''}
+                                    onChange={(e) => updateListItem(activeSection.id, idx, 'question', e.target.value)}
+                                    className="h-7 text-xs"
+                                  />
+                                </div>
+                                <div className="grid gap-0.5">
+                                  <Label className="text-[10px] text-muted-foreground">Respuesta</Label>
+                                  <Textarea
+                                    rows={2}
+                                    value={item.answer || ''}
+                                    onChange={(e) => updateListItem(activeSection.id, idx, 'answer', e.target.value)}
+                                    className="text-xs py-1 min-h-[50px] resize-none"
+                                  />
+                                </div>
+                              </div>
+                            </Card>
+                          ))}
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="rounded-lg border border-dashed border-border text-[11px] w-full py-2.5 h-auto"
+                          onClick={() => addListItem(activeSection.id, { question: 'Nueva Pregunta', answer: 'Detalle de la respuesta.' })}
+                        >
+                          <Plus className="mr-1 h-3 w-3" /> Agregar Pregunta
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Formulario Específico de FOOTER_SECTION */}
+                  {activeSection.type === 'FOOTER_SECTION' && (
+                    <div className="space-y-3">
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="foot-copy" className="text-xs">Texto de Copyright</Label>
+                        <Input
+                          id="foot-copy"
+                          value={activeSection.content.copyright || ''}
+                          onChange={(e) => handleContentChange(activeSection.id, 'copyright', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Fallback Legacy: PRODUCTS_LIST */}
                   {activeSection.type === 'PRODUCTS_LIST' && (
                     <div className="space-y-3">
                       <div className="grid gap-1.5">
@@ -792,135 +1389,6 @@ export function LandingBuilderView() {
                           id="p-subtitle"
                           value={activeSection.content.subtitle || ''}
                           onChange={(e) => handleContentChange(activeSection.id, 'subtitle', e.target.value)}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Formulario Específico de CONTACT_INFO */}
-                  {activeSection.type === 'CONTACT_INFO' && (
-                    <div className="space-y-3">
-                      <div className="grid gap-1.5">
-                        <Label htmlFor="c-title" className="text-xs">Título</Label>
-                        <Input
-                          id="c-title"
-                          value={activeSection.content.title || ''}
-                          onChange={(e) => handleContentChange(activeSection.id, 'title', e.target.value)}
-                        />
-                      </div>
-                      <div className="grid gap-1.5">
-                        <Label htmlFor="c-phone" className="text-xs">Teléfono</Label>
-                        <Input
-                          id="c-phone"
-                          value={activeSection.content.phone || ''}
-                          onChange={(e) => handleContentChange(activeSection.id, 'phone', e.target.value)}
-                        />
-                      </div>
-                      <div className="grid gap-1.5">
-                        <Label htmlFor="c-email" className="text-xs">Email</Label>
-                        <Input
-                          id="c-email"
-                          value={activeSection.content.email || ''}
-                          onChange={(e) => handleContentChange(activeSection.id, 'email', e.target.value)}
-                        />
-                      </div>
-                      <div className="grid gap-1.5">
-                        <Label htmlFor="c-address" className="text-xs">Dirección</Label>
-                        <Input
-                          id="c-address"
-                          value={activeSection.content.address || ''}
-                          onChange={(e) => handleContentChange(activeSection.id, 'address', e.target.value)}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Formulario Específico de FEATURES_LIST */}
-                  {activeSection.type === 'FEATURES_LIST' && (
-                    <div className="space-y-3">
-                      <div className="grid gap-1.5">
-                        <Label htmlFor="f-title" className="text-xs">Título de Sección</Label>
-                        <Input
-                          id="f-title"
-                          value={activeSection.content.title || ''}
-                          onChange={(e) => handleContentChange(activeSection.id, 'title', e.target.value)}
-                        />
-                      </div>
-
-                      <div className="space-y-2.5">
-                        <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
-                          Tarjetas de Servicio
-                        </Label>
-                        <div className="grid gap-2">
-                          {(activeSection.content.items || []).map((item: any, idx: number) => (
-                            <Card key={idx} className="animate-feature-item p-3 border border-border bg-background rounded-lg shadow-none relative group/item">
-                              <button
-                                type="button"
-                                onClick={() => removeFeatureItem(activeSection.id, idx)}
-                                className="absolute right-2 top-2 h-5 w-5 flex items-center justify-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive opacity-0 group-hover/item:opacity-100 transition-all duration-200"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
-                              <div className="grid gap-2">
-                                <div className="grid gap-0.5">
-                                  <Label className="text-[10px] text-muted-foreground">Título</Label>
-                                  <Input
-                                    value={item.title || ''}
-                                    onChange={(e) => updateFeatureItem(activeSection.id, idx, 'title', e.target.value)}
-                                    placeholder="Nombre del servicio"
-                                    className="h-7 text-xs"
-                                  />
-                                </div>
-                                <div className="grid gap-0.5">
-                                  <Label className="text-[10px] text-muted-foreground">Descripción</Label>
-                                  <Textarea
-                                    rows={2}
-                                    value={item.description || ''}
-                                    onChange={(e) => updateFeatureItem(activeSection.id, idx, 'description', e.target.value)}
-                                    placeholder="Detalles"
-                                    className="text-xs py-1 min-h-[50px] resize-none"
-                                  />
-                                </div>
-                              </div>
-                            </Card>
-                          ))}
-                        </div>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="rounded-lg border border-dashed border-border text-[11px] w-full py-3 h-auto"
-                          onClick={() => addFeatureItem(activeSection.id)}
-                        >
-                          <Plus className="mr-1 h-3 w-3" /> Agregar Servicio
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Formulario Específico de TESTIMONIALS */}
-                  {activeSection.type === 'TESTIMONIALS' && (
-                    <div className="space-y-3">
-                      <div className="grid gap-1.5">
-                        <Label htmlFor="t-title" className="text-xs">Título</Label>
-                        <Input
-                          id="t-title"
-                          value={activeSection.content.title || ''}
-                          onChange={(e) => handleContentChange(activeSection.id, 'title', e.target.value)}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Formulario Específico de FAQ */}
-                  {activeSection.type === 'FAQ' && (
-                    <div className="space-y-3">
-                      <div className="grid gap-1.5">
-                        <Label htmlFor="q-title" className="text-xs">Título</Label>
-                        <Input
-                          id="q-title"
-                          value={activeSection.content.title || ''}
-                          onChange={(e) => handleContentChange(activeSection.id, 'title', e.target.value)}
                         />
                       </div>
                     </div>
@@ -1103,6 +1571,65 @@ export function LandingBuilderView() {
         onSelect={handleMediaSelect}
         profile={profile}
       />
+
+      {confirmModal && (
+        <Dialog open={confirmModal.open} onOpenChange={(val) => !val && setConfirmModal(null)}>
+          <DialogContent className="sm:max-w-md bg-card border border-border p-5 rounded-xl shadow-lg">
+            <DialogHeader>
+              <DialogTitle className="font-serif text-base font-bold text-foreground">
+                {confirmModal.title}
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground mt-2">
+                {confirmModal.message}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="mt-4 flex gap-2 justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setConfirmModal(null)}
+                className="rounded-lg text-xs"
+              >
+                Cancelar
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  confirmModal.onConfirm()
+                  setConfirmModal(null)
+                }}
+                className="rounded-lg text-xs"
+              >
+                Confirmar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {alertModal && (
+        <Dialog open={alertModal.open} onOpenChange={(val) => !val && setAlertModal(null)}>
+          <DialogContent className="sm:max-w-md bg-card border border-border p-5 rounded-xl shadow-lg">
+            <DialogHeader>
+              <DialogTitle className="font-serif text-base font-bold text-foreground">
+                {alertModal.title}
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground mt-2">
+                {alertModal.message}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="mt-4 flex justify-end">
+              <Button
+                size="sm"
+                onClick={() => setAlertModal(null)}
+                className="rounded-lg text-xs"
+              >
+                Aceptar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   )
 }

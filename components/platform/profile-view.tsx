@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { ProductDialog } from '@/components/platform/product-dialog'
 import { IncomingBadge } from '@/components/platform/incoming-badge'
+import { DomainConfigPanel } from './domain-config-panel'
 import { cn } from '@/lib/utils'
 import type { BusinessProfile, Product } from '@/lib/bercario-data'
 import { uploadService } from '../../lib/api/services/upload'
@@ -460,6 +461,11 @@ export function ProfileView({
             </button>
           )}
         </div>
+      </div>
+
+      {/* Panel de Configuración de Dominios */}
+      <div className="col-span-1 lg:col-span-2 mt-6 animate-profile-card opacity-0">
+        <DomainConfigPanel />
       </div>
 
       <ProductDialog

@@ -1,10 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
+import { useState, useEffect, useRef } from 'react'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Phone, Mail, MapPin, ShoppingBag } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Phone, Mail, MapPin, ShoppingBag, ShieldCheck, Star, Check, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { animate } from 'animejs'
 import { 
   type BusinessProfile, 
   type LandingSection, 
@@ -18,12 +20,14 @@ function EditableTextInline({
   className,
   as: Element = 'span',
   type = 'input',
+  style,
 }: {
   value: string
   onSave?: (val: string) => void
   className?: string
   as?: any
   type?: 'input' | 'textarea'
+  style?: React.CSSProperties
 }) {
   const [isEditing, setIsEditing] = useState(false)
   const [tempValue, setTempValue] = useState(value)
@@ -33,7 +37,7 @@ function EditableTextInline({
   }, [value])
 
   if (!onSave) {
-    return <Element className={className}>{value}</Element>
+    return <Element className={className} style={style}>{value}</Element>
   }
 
   if (isEditing) {
@@ -104,6 +108,7 @@ function EditableTextInline({
         "cursor-pointer hover:bg-primary/10 hover:ring-1 hover:ring-primary/30 px-1 py-0.5 rounded transition-all inline-block max-w-full", 
         className
       )}
+      style={style}
       title="Doble clic para editar"
     >
       {value}
@@ -175,6 +180,365 @@ export function PublicBusinessLanding({
   )
 }
 
+function FAQAccordionItem({
+  question,
+  answer,
+  isOpen,
+  onToggle,
+  onInlineEditQuestion,
+  onInlineEditAnswer,
+}: {
+  question: string
+  answer: string
+  isOpen: boolean
+  onToggle: () => void
+  onInlineEditQuestion?: (val: string) => void
+  onInlineEditAnswer?: (val: string) => void
+}) {
+  const contentRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!contentRef.current) return
+    if (isOpen) {
+      animate(contentRef.current, {
+        height: [0, contentRef.current.scrollHeight],
+        opacity: [0, 1],
+        duration: 350,
+        easing: 'easeOutQuad',
+      })
+    } else {
+      animate(contentRef.current, {
+        height: 0,
+        opacity: 0,
+        duration: 250,
+        easing: 'easeOutQuad',
+      })
+    }
+  }, [isOpen])
+
+  return (
+    <div className="border-b border-border/40 py-3 w-full">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="w-full flex items-center justify-between text-left font-semibold text-foreground py-2 text-sm focus:outline-none"
+      >
+        <EditableTextInline value={question} onSave={onInlineEditQuestion} />
+        <span className={cn("text-xs transition-transform duration-300 ml-2 text-muted-foreground", isOpen ? "rotate-180" : "")}>▼</span>
+      </button>
+      <div
+        ref={contentRef}
+        style={{ height: 0, overflow: 'hidden', opacity: 0 }}
+        className="text-xs text-muted-foreground leading-relaxed pr-8"
+      >
+        <div className="py-2">
+          <EditableTextInline type="textarea" value={answer} onSave={onInlineEditAnswer} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function RiskReversalSeal({
+  title,
+  description,
+  days,
+  onInlineEditTitle,
+  onInlineEditDesc,
+}: {
+  title: string
+  description: string
+  days: number
+  onInlineEditTitle?: (val: string) => void
+  onInlineEditDesc?: (val: string) => void
+}) {
+  const sealRef = useRef<HTMLDivElement>(null)
+
+  const handleMouseEnter = () => {
+    if (!sealRef.current) return
+    animate(sealRef.current, {
+      scale: 1.05,
+      rotate: '5deg',
+      duration: 300,
+      easing: 'easeOutElastic(1, .8)',
+    })
+  }
+
+  const handleMouseLeave = () => {
+    if (!sealRef.current) return
+    animate(sealRef.current, {
+      scale: 1,
+      rotate: '0deg',
+      duration: 300,
+      easing: 'easeOutQuad',
+    })
+  }
+
+  return (
+    <div
+      ref={sealRef}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      className="flex flex-col items-center p-6 border-2 border-dashed border-primary/45 rounded-2xl bg-card shadow-sm cursor-default max-w-md mx-auto transition-shadow hover:shadow-md"
+    >
+      <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-3">
+        <ShieldCheck className="h-8 w-8" />
+      </div>
+      <EditableTextInline
+        as="h3"
+        value={title}
+        onSave={onInlineEditTitle}
+        className="text-sm font-bold text-foreground font-serif"
+      />
+      <div className="mt-1.5 text-xs text-muted-foreground text-center leading-relaxed">
+        <EditableTextInline
+          type="textarea"
+          value={description}
+          onSave={onInlineEditDesc}
+        />
+      </div>
+      <span className="mt-3 text-[10px] font-semibold tracking-wider text-primary uppercase bg-primary/10 px-2 py-0.5 rounded-full">
+        Garantía de {days} días
+      </span>
+    </div>
+  )
+}
+
+function TestimonialsSlider({
+  title,
+  items,
+  columns = 3,
+  onInlineEditTitle,
+  onInlineEditItem,
+}: {
+  title: string
+  items: any[]
+  columns?: number
+  onInlineEditTitle?: (val: string) => void
+  onInlineEditItem?: (idx: number, field: string, val: string) => void
+}) {
+  const [activeIndex, setActiveIndex] = useState(0)
+  const trackRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!trackRef.current) return
+    animate(trackRef.current, {
+      translateX: -activeIndex * 100 + '%',
+      duration: 500,
+      easing: 'easeOutQuart',
+    })
+  }, [activeIndex])
+
+  return (
+    <div className="w-full flex flex-col items-center">
+      <EditableTextInline
+        as="h2"
+        value={title}
+        onSave={onInlineEditTitle}
+        className="text-2xl font-semibold text-foreground mb-6 font-serif"
+      />
+      
+      {/* Slider Viewport */}
+      <div className="w-full overflow-hidden relative px-4">
+        <div 
+          ref={trackRef} 
+          className="flex transition-transform duration-500 ease-in-out w-full"
+          style={{ width: `${Math.max(items.length, 1) * 100}%` }}
+        >
+          {items.map((item, idx) => (
+            <div 
+              key={idx} 
+              className="px-2"
+              style={{ width: `${100 / Math.max(items.length, 1)}%` }}
+            >
+              <Card className="p-6 border border-border/40 bg-card shadow-sm rounded-xl flex flex-col items-center text-center">
+                <div className="flex gap-0.5 mb-2.5">
+                  {Array.from({ length: item.rating || 5 }).map((_, i) => (
+                    <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                  ))}
+                </div>
+                <div className="text-xs italic text-muted-foreground leading-relaxed">
+                  <EditableTextInline
+                    type="textarea"
+                    value={item.comment}
+                    onSave={onInlineEditItem ? (val) => onInlineEditItem(idx, 'comment', val) : undefined}
+                  />
+                </div>
+                <div className="mt-4 flex items-center gap-2">
+                  {item.avatarUrl && (
+                    <img 
+                      src={item.avatarUrl} 
+                      alt={item.name} 
+                      className="w-7 h-7 rounded-full object-cover border border-border/40" 
+                    />
+                  )}
+                  <div className="text-left">
+                    <div className="text-xs font-semibold text-foreground">
+                      <EditableTextInline
+                        value={item.name}
+                        onSave={onInlineEditItem ? (val) => onInlineEditItem(idx, 'name', val) : undefined}
+                      />
+                    </div>
+                    <div className="text-[10px] text-muted-foreground">
+                      <EditableTextInline
+                        value={item.role}
+                        onSave={onInlineEditItem ? (val) => onInlineEditItem(idx, 'role', val) : undefined}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          ))}
+        </div>
+      </div>
+      
+      {/* Controls */}
+      {items.length > 1 && (
+        <div className="flex gap-2 mt-4">
+          {items.map((_, i) => (
+            <button
+              type="button"
+              key={i}
+              onClick={() => setActiveIndex(i)}
+              className={cn(
+                "w-2 h-2 rounded-full transition-all duration-300",
+                activeIndex === i ? "bg-primary w-4" : "bg-muted-foreground/30"
+              )}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function LeadCaptureForm({
+  title,
+  subtitle,
+  ctaText,
+  slug,
+  onInlineEditTitle,
+  onInlineEditSubtitle,
+  onInlineEditCta,
+}: {
+  title: string
+  subtitle: string
+  ctaText: string
+  slug: string
+  onInlineEditTitle?: (val: string) => void
+  onInlineEditSubtitle?: (val: string) => void
+  onInlineEditCta?: (val: string) => void
+}) {
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!name || !email || !phone) {
+      setMessage({ type: 'error', text: 'Todos los campos son obligatorios.' })
+      return
+    }
+
+    try {
+      setLoading(true)
+      setMessage(null)
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/public/landing/${slug}/lead`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name, email, phone, metadata: {} }),
+      })
+
+      const data = await res.json()
+      if (res.ok) {
+        setMessage({ type: 'success', text: data.message || '¡Registrado con éxito! Pronto te contactaremos.' })
+        setName('')
+        setEmail('')
+        setPhone('')
+      } else {
+        setMessage({ type: 'error', text: data.message || 'Hubo un error al registrar tus datos.' })
+      }
+    } catch (err) {
+      console.error(err)
+      setMessage({ type: 'error', text: 'No se pudo conectar con el servidor. Inténtalo más tarde.' })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Card className="w-full max-w-lg mx-auto p-6 border border-border/40 bg-card rounded-2xl shadow-sm">
+      <h3 className="text-lg font-bold text-foreground font-serif text-center">
+        <EditableTextInline value={title} onSave={onInlineEditTitle} />
+      </h3>
+      <p className="text-xs text-muted-foreground mt-1 text-center mb-5">
+        <EditableTextInline value={subtitle} onSave={onInlineEditSubtitle} />
+      </p>
+      
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <Input
+            type="text"
+            placeholder="Nombre completo"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            disabled={loading}
+            className="text-xs h-9 bg-muted/20"
+          />
+        </div>
+        <div>
+          <Input
+            type="email"
+            placeholder="Correo electrónico"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={loading}
+            className="text-xs h-9 bg-muted/20"
+          />
+        </div>
+        <div>
+          <Input
+            type="tel"
+            placeholder="Teléfono / WhatsApp"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            disabled={loading}
+            className="text-xs h-9 bg-muted/20"
+          />
+        </div>
+        
+        {message && (
+          <div className={cn(
+            "p-3 rounded-lg text-xs font-medium text-center",
+            message.type === 'success' ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20" : "bg-destructive/10 text-destructive border border-destructive/20"
+          )}>
+            {message.text}
+          </div>
+        )}
+
+        <Button
+          type="submit"
+          disabled={loading}
+          className="w-full h-9 text-xs font-semibold flex items-center justify-center gap-1.5"
+          style={{
+            borderRadius: 'var(--preview-btn-radius)',
+            backgroundColor: 'var(--preview-primary)',
+            color: 'var(--preview-bg)',
+          }}
+        >
+          {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+          <EditableTextInline value={ctaText} onSave={onInlineEditCta} />
+        </Button>
+      </form>
+    </Card>
+  )
+}
+
 function PreviewSection({
   section,
   profile,
@@ -196,69 +560,257 @@ function PreviewSection({
       : textAlignment === 'center'
       ? 'text-center items-center'
       : 'text-left items-start'
+      
+  // Local state for FAQ Accordion
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null)
 
   if (type === 'HERO_BANNER') {
+    const layoutDir = content?.layoutDirection || 'left-to-right'
+    const isLeftText = layoutDir === 'left-to-right'
+
     return (
-      <section className="relative w-full flex flex-col items-center">
-        <div className="relative h-56 w-full overflow-hidden sm:h-72 group/banner">
-          <img
-            src={profile.banner || '/images/company-banner.png'}
-            alt="Banner"
-            className="h-full w-full object-cover cursor-pointer hover:brightness-95 transition-all"
-            onClick={() => onImageClick?.('banner')}
-            title="Clic para cambiar imagen de banner"
-            onError={(e) => {
-              e.currentTarget.src = '/images/company-banner.png'
-            }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-foreground/45 to-transparent pointer-events-none" />
-        </div>
-        <div
-          className={cn(
-            "mx-auto -mt-12 flex w-11/12 max-w-3xl flex-col px-6 py-8 rounded-2xl border border-border/40 shadow-sm transition-all duration-400 ease-in-out",
-            alignClass
-          )}
-          style={{ backgroundColor: 'var(--preview-bg)', borderColor: 'var(--preview-primary)' }}
-        >
-          <div className="h-20 w-20 overflow-hidden rounded-3xl border-4 border-background bg-card shadow-md relative group/logo">
+      <section className="relative w-full px-6 py-12 md:py-20 flex flex-col items-center">
+        <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+          {/* Columna Texto */}
+          <div className={cn("flex flex-col gap-4 order-1", isLeftText ? "md:order-1" : "md:order-2", alignClass)}>
+            <div className="h-16 w-16 overflow-hidden rounded-2xl border-2 border-primary bg-card shadow-sm relative group/logo mb-2">
+              <img
+                src={profile.logo || '/images/company-logo.png'}
+                alt={profile.name}
+                className="h-full w-full object-cover cursor-pointer hover:brightness-95 transition-all"
+                onClick={() => onImageClick?.('logo')}
+                title="Clic para cambiar logo"
+                onError={(e) => {
+                  e.currentTarget.src = '/images/company-logo.png'
+                }}
+              />
+            </div>
+            <EditableTextInline
+              as="h1"
+              value={content?.title || profile.name}
+              onSave={onInlineEdit ? (val) => onInlineEdit(section.id, 'title', val) : undefined}
+              className="font-bold tracking-tight text-foreground text-3xl sm:text-4xl transition-all duration-300 leading-tight"
+              style={{ fontFamily: 'var(--preview-font-title)' }}
+            />
+            <EditableTextInline
+              as="p"
+              value={content?.subtitle || profile.tagline}
+              onSave={onInlineEdit ? (val) => onInlineEdit(section.id, 'subtitle', val) : undefined}
+              className="opacity-80 text-sm sm:text-base leading-relaxed max-w-lg"
+            />
+            <div>
+              <a
+                href={content?.ctaUrl || '#form'}
+                className={cn(
+                  buttonVariants({ variant: 'default' }),
+                  "mt-2 shadow-sm font-medium hover:scale-105 active:scale-95 transition-all duration-300 flex items-center gap-1.5 w-fit"
+                )}
+                style={{
+                  borderRadius: 'var(--preview-btn-radius)',
+                  backgroundColor: 'var(--preview-primary)',
+                  color: 'var(--preview-bg)',
+                }}
+              >
+                <ShoppingBag className="h-4 w-4" />
+                <EditableTextInline
+                  value={content?.ctaText || 'Ver catálogo'}
+                  onSave={onInlineEdit ? (val) => onInlineEdit(section.id, 'ctaText', val) : undefined}
+                />
+              </a>
+            </div>
+          </div>
+
+          {/* Columna Imagen */}
+          <div className={cn("order-2 relative aspect-[4/3] rounded-2xl overflow-hidden border border-border/40 shadow-md group/banner bg-muted/20", isLeftText ? "md:order-2" : "md:order-1")}>
             <img
-              src={profile.logo || '/images/company-logo.png'}
-              alt={profile.name}
-              className="h-full w-full object-cover cursor-pointer hover:brightness-95 transition-all"
-              onClick={() => onImageClick?.('logo')}
-              title="Clic para cambiar logo"
+              src={profile.banner || '/images/company-banner.png'}
+              alt="Banner"
+              className="h-full w-full object-cover cursor-pointer hover:scale-[1.01] transition-all duration-300"
+              onClick={() => onImageClick?.('banner')}
+              title="Clic para cambiar imagen principal"
               onError={(e) => {
-                e.currentTarget.src = '/images/company-logo.png'
+                e.currentTarget.src = '/images/company-banner.png'
               }}
             />
           </div>
+        </div>
+      </section>
+    )
+  }
+
+  if (type === 'EMPATHY_SECTION') {
+    return (
+      <section className="mx-auto max-w-3xl px-6 py-12 w-full">
+        <div className={cn("flex flex-col p-6 sm:p-8 rounded-2xl border border-destructive/20 bg-destructive/5 shadow-sm text-balance", alignClass)}>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-destructive mb-2.5 bg-destructive/10 px-2 py-0.5 rounded-full w-fit">
+            El Problema Común
+          </span>
           <EditableTextInline
-            as="h1"
-            value={content?.title || profile.name}
+            as="h2"
+            value={content?.title || '¿Problemas con tus pedidos?'}
             onSave={onInlineEdit ? (val) => onInlineEdit(section.id, 'title', val) : undefined}
-            className="mt-4 font-bold tracking-tight text-foreground text-3xl transition-all duration-300"
-            style={{ fontFamily: 'var(--preview-font-title)' }}
+            className="text-xl sm:text-2xl font-bold text-foreground mb-3 font-serif"
           />
-          <EditableTextInline
-            as="p"
-            value={content?.subtitle || profile.tagline}
-            onSave={onInlineEdit ? (val) => onInlineEdit(section.id, 'subtitle', val) : undefined}
-            className="mt-1.5 opacity-80"
-          />
-          <Button
-            className="mt-5 shadow-sm border border-transparent font-medium hover:scale-105 active:scale-95 transition-all duration-300"
-            style={{
-              borderRadius: 'var(--preview-btn-radius)',
-              backgroundColor: 'var(--preview-primary)',
-              color: 'var(--preview-bg)',
-            }}
-          >
-            <ShoppingBag className="mr-1.5 h-4 w-4" />
+          <div className="text-sm opacity-85 leading-relaxed max-w-2xl">
             <EditableTextInline
-              value={content?.ctaText || 'Ver catálogo'}
-              onSave={onInlineEdit ? (val) => onInlineEdit(section.id, 'ctaText', val) : undefined}
+              as="p"
+              type="textarea"
+              value={content?.description}
+              onSave={onInlineEdit ? (val) => onInlineEdit(section.id, 'description', val) : undefined}
             />
-          </Button>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  if (type === 'SOLUTION_OFFER') {
+    const layoutDir = content?.layoutDirection || 'left-to-right'
+    const isLeftText = layoutDir === 'left-to-right'
+    const sectionImgKey = { sectionId: section.id, contentKey: 'imageUrl' }
+
+    return (
+      <section className="mx-auto max-w-4xl px-6 py-12 sm:py-16 w-full">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+          {/* Texto de la Oferta */}
+          <div className={cn("flex flex-col gap-4 order-1", isLeftText ? "md:order-1" : "md:order-2", alignClass)}>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded-full w-fit">
+              Nuestra Propuesta
+            </span>
+            <EditableTextInline
+              as="h2"
+              value={content?.title || 'La Solución'}
+              onSave={onInlineEdit ? (val) => onInlineEdit(section.id, 'title', val) : undefined}
+              className="text-2xl sm:text-3xl font-bold text-foreground font-serif leading-snug"
+            />
+            <div className="text-sm opacity-85 leading-relaxed max-w-lg">
+              <EditableTextInline
+                as="p"
+                type="textarea"
+                value={content?.description}
+                onSave={onInlineEdit ? (val) => onInlineEdit(section.id, 'description', val) : undefined}
+              />
+            </div>
+            <div>
+              <a
+                href={content?.ctaUrl || '#form'}
+                className={cn(
+                  buttonVariants({ variant: 'default' }),
+                  "mt-2 shadow-sm font-medium hover:scale-105 active:scale-95 transition-all duration-300 flex items-center gap-1 w-fit"
+                )}
+                style={{
+                  borderRadius: 'var(--preview-btn-radius)',
+                  backgroundColor: 'var(--preview-primary)',
+                  color: 'var(--preview-bg)',
+                }}
+              >
+                <EditableTextInline
+                  value={content?.ctaText || 'Ver Más'}
+                  onSave={onInlineEdit ? (val) => onInlineEdit(section.id, 'ctaText', val) : undefined}
+                />
+              </a>
+            </div>
+          </div>
+
+          {/* Imagen de la Oferta */}
+          <div 
+            className={cn(
+              "order-2 relative aspect-[4/3] rounded-2xl overflow-hidden border border-border/40 shadow-sm cursor-pointer hover:opacity-95 transition-all", 
+              isLeftText ? "md:order-2" : "md:order-1"
+            )}
+            onClick={() => onImageClick?.(sectionImgKey)}
+            title="Clic para cambiar imagen de oferta"
+          >
+            <img
+              src={content?.imageUrl || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600&auto=format&fit=crop&q=80'}
+              alt="Oferta"
+              className="h-full w-full object-cover"
+              onError={(e) => {
+                e.currentTarget.src = 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600&auto=format&fit=crop&q=80'
+              }}
+            />
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  if (type === 'VALUE_PROP') {
+    const cols = content?.columns || 3
+    const gridClass =
+      cols === 2
+        ? 'grid-cols-1 sm:grid-cols-2'
+        : cols === 4
+        ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'
+        : 'grid-cols-1 sm:grid-cols-3'
+
+    return (
+      <section className={cn("mx-auto max-w-4xl px-6 py-12 flex flex-col", alignClass)}>
+        <EditableTextInline
+          as="h2"
+          value={content?.title || '¿Por qué elegirnos?'}
+          onSave={onInlineEdit ? (val) => onInlineEdit(section.id, 'title', val) : undefined}
+          className="text-2xl font-semibold text-foreground mb-6 font-serif"
+        />
+        <div className={cn("grid gap-5 w-full", gridClass)}>
+          {(content?.items || []).map((item: any, i: number) => (
+            <Card
+              key={i}
+              className="p-5 border border-border/40 bg-card shadow-sm rounded-2xl flex flex-col gap-2 items-stretch transition-transform hover:scale-[1.01]"
+            >
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">
+                {i + 1}
+              </div>
+              <EditableTextInline
+                as="h3"
+                value={item.title}
+                onSave={onInlineEdit ? (val) => onInlineEdit(section.id, 'items', val, i, 'title') : undefined}
+                className="text-sm font-bold text-foreground"
+              />
+              <EditableTextInline
+                as="p"
+                type="textarea"
+                value={item.description}
+                onSave={onInlineEdit ? (val) => onInlineEdit(section.id, 'items', val, i, 'description') : undefined}
+                className="text-xs leading-relaxed text-muted-foreground w-full"
+              />
+            </Card>
+          ))}
+        </div>
+      </section>
+    )
+  }
+
+  if (type === 'HOW_IT_WORKS') {
+    return (
+      <section className={cn("mx-auto max-w-3xl px-6 py-12 flex flex-col", alignClass)}>
+        <EditableTextInline
+          as="h2"
+          value={content?.title || 'Proceso de Compra'}
+          onSave={onInlineEdit ? (val) => onInlineEdit(section.id, 'title', val) : undefined}
+          className="text-2xl font-semibold text-foreground mb-8 font-serif"
+        />
+        <div className="relative border-l border-border/85 ml-3 pl-6 space-y-8 w-full text-left">
+          {(content?.items || []).map((item: any, i: number) => (
+            <div key={i} className="relative">
+              <span className="absolute -left-[37px] top-0 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                {item.step || i + 1}
+              </span>
+              <EditableTextInline
+                as="h3"
+                value={item.title}
+                onSave={onInlineEdit ? (val) => onInlineEdit(section.id, 'items', val, i, 'title') : undefined}
+                className="text-sm font-semibold text-foreground"
+              />
+              <div className="text-xs text-muted-foreground mt-1 leading-relaxed w-full">
+                <EditableTextInline
+                  type="textarea"
+                  value={item.description}
+                  onSave={onInlineEdit ? (val) => onInlineEdit(section.id, 'items', val, i, 'description') : undefined}
+                />
+              </div>
+            </div>
+          ))}
         </div>
       </section>
     )
@@ -271,8 +823,7 @@ function PreviewSection({
           as="h2"
           value={content?.title || 'Quiénes somos'}
           onSave={onInlineEdit ? (val) => onInlineEdit(section.id, 'title', val) : undefined}
-          className="text-2xl font-semibold text-foreground transition-all duration-300"
-          style={{ fontFamily: 'var(--preview-font-title)' }}
+          className="text-2xl font-semibold text-foreground transition-all duration-300 font-serif"
         />
         <div className="mt-3 text-pretty leading-relaxed text-sm opacity-85 w-full">
           <EditableTextInline
@@ -283,10 +834,107 @@ function PreviewSection({
             className="w-full leading-relaxed"
           />
         </div>
+        {content?.signature && (
+          <div className="mt-6 border-t border-border/40 pt-3 text-xs italic text-muted-foreground">
+            <EditableTextInline
+              value={content.signature}
+              onSave={onInlineEdit ? (val) => onInlineEdit(section.id, 'signature', val) : undefined}
+            />
+          </div>
+        )}
       </section>
     )
   }
 
+  if (type === 'TESTIMONIALS') {
+    return (
+      <section className="mx-auto max-w-3xl px-6 py-12 w-full">
+        <TestimonialsSlider
+          title={content?.title || 'Lo que dicen nuestros clientes'}
+          items={content?.items || []}
+          columns={content?.columns || 3}
+          onInlineEditTitle={onInlineEdit ? (val) => onInlineEdit(section.id, 'title', val) : undefined}
+          onInlineEditItem={onInlineEdit ? (idx, field, val) => onInlineEdit(section.id, 'items', val, idx, field) : undefined}
+        />
+      </section>
+    )
+  }
+
+  if (type === 'CONVERSION_FORM') {
+    return (
+      <section id="form" className="mx-auto max-w-3xl px-6 py-12 w-full">
+        <LeadCaptureForm
+          title={content?.title || '¿Listo para empezar?'}
+          subtitle={content?.subtitle || 'Déjanos tus datos y te contactaremos de inmediato.'}
+          ctaText={content?.ctaText || 'Enviar Información'}
+          slug={profile.slug}
+          onInlineEditTitle={onInlineEdit ? (val) => onInlineEdit(section.id, 'title', val) : undefined}
+          onInlineEditSubtitle={onInlineEdit ? (val) => onInlineEdit(section.id, 'subtitle', val) : undefined}
+          onInlineEditCta={onInlineEdit ? (val) => onInlineEdit(section.id, 'ctaText', val) : undefined}
+        />
+      </section>
+    )
+  }
+
+  if (type === 'RISK_REVERSAL') {
+    return (
+      <section className="mx-auto max-w-3xl px-6 py-12 w-full">
+        <RiskReversalSeal
+          title={content?.title || 'Garantía de Satisfacción'}
+          description={content?.description || 'Te respaldamos con una garantía de devolución completa de tu inversión.'}
+          days={content?.days || 30}
+          onInlineEditTitle={onInlineEdit ? (val) => onInlineEdit(section.id, 'title', val) : undefined}
+          onInlineEditDesc={onInlineEdit ? (val) => onInlineEdit(section.id, 'description', val) : undefined}
+        />
+      </section>
+    )
+  }
+
+  if (type === 'FAQ_ACCORDION') {
+    const faqItems = content?.items || []
+
+    return (
+      <section className={cn("mx-auto max-w-3xl px-6 py-12 flex flex-col", alignClass)}>
+        <EditableTextInline
+          as="h2"
+          value={content?.title || 'Preguntas Frecuentes'}
+          onSave={onInlineEdit ? (val) => onInlineEdit(section.id, 'title', val) : undefined}
+          className="text-2xl font-semibold text-foreground mb-6 font-serif"
+        />
+        <div className="w-full text-left space-y-1">
+          {faqItems.map((item: any, i: number) => (
+            <FAQAccordionItem
+              key={i}
+              question={item.question}
+              answer={item.answer}
+              isOpen={openFaqIndex === i}
+              onToggle={() => setOpenFaqIndex(openFaqIndex === i ? null : i)}
+              onInlineEditQuestion={onInlineEdit ? (val) => onInlineEdit(section.id, 'items', val, i, 'question') : undefined}
+              onInlineEditAnswer={onInlineEdit ? (val) => onInlineEdit(section.id, 'items', val, i, 'answer') : undefined}
+            />
+          ))}
+        </div>
+      </section>
+    )
+  }
+
+  if (type === 'FOOTER_SECTION') {
+    return (
+      <section className="border-t border-border/30 bg-muted/10 px-6 py-8 w-full text-center text-xs opacity-75">
+        <div className="mx-auto max-w-3xl flex flex-col items-center gap-2">
+          <EditableTextInline
+            value={content?.copyright || '© 2026 Todos los derechos reservados.'}
+            onSave={onInlineEdit ? (val) => onInlineEdit(section.id, 'copyright', val) : undefined}
+          />
+          <div className="text-[10px] text-muted-foreground">
+            Sitio web profesional generado con Berçário
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  // Fallbacks para compatibilidad con secciones legacy
   if (type === 'PRODUCTS_LIST') {
     return (
       <section className={cn("mx-auto max-w-4xl px-6 py-12 flex flex-col", alignClass)}>
@@ -294,17 +942,16 @@ function PreviewSection({
           as="h2"
           value={content?.title || 'Catálogo'}
           onSave={onInlineEdit ? (val) => onInlineEdit(section.id, 'title', val) : undefined}
-          className="text-2xl font-semibold text-foreground transition-all duration-300"
-          style={{ fontFamily: 'var(--preview-font-title)' }}
+          className="text-2xl font-semibold text-foreground transition-all duration-300 font-serif"
         />
         <EditableTextInline
           as="p"
-          value={content?.subtitle || `${profile.products?.length || 0} productos disponibles al por mayor`}
+          value={content?.subtitle || `${profile.products?.length || 0} productos disponibles`}
           onSave={onInlineEdit ? (val) => onInlineEdit(section.id, 'subtitle', val) : undefined}
           className="mt-1 text-sm opacity-80"
         />
         <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 w-full">
-          {profile.products.map((p) => (
+          {(profile.products || []).map((p) => (
             <div
               key={p.id}
               className="group overflow-hidden rounded-xl border border-border/40 bg-card shadow-sm"
@@ -327,138 +974,7 @@ function PreviewSection({
                 <h3 className="truncate text-sm font-medium text-foreground">
                   {p.title || (p as any).name}
                 </h3>
-                <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-muted-foreground">
-                  {p.description || (p as any).desc}
-                </p>
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {p.tags?.slice(0, 2).map((t) => (
-                    <span
-                      key={t}
-                      className="rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-medium text-accent-foreground"
-                    >
-                      {t}
-                    </span>
-                  ))}
-                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      </section>
-    )
-  }
-
-  if (type === 'CONTACT_INFO') {
-    return (
-      <section className="border-t border-border/30 bg-secondary/20 px-6 py-12 w-full">
-        <div className={cn("mx-auto max-w-3xl flex flex-col", alignClass)}>
-          <EditableTextInline
-            as="h2"
-            value={content?.title || 'Contáctanos'}
-            onSave={onInlineEdit ? (val) => onInlineEdit(section.id, 'title', val) : undefined}
-            className="text-2xl font-semibold text-foreground transition-all duration-300"
-            style={{ fontFamily: 'var(--preview-font-title)' }}
-          />
-          <div className="mt-5 grid gap-3 sm:grid-cols-3 w-full">
-            {[
-              { icon: Phone, field: 'phone', value: content?.phone || profile.phone },
-              { icon: Mail, field: 'email', value: content?.email || profile.email },
-              { icon: MapPin, field: 'address', value: content?.address || profile.address },
-            ].map((c, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-2.5 rounded-xl border border-border/40 bg-card p-3.5 text-sm"
-              >
-                <c.icon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                <EditableTextInline
-                  value={c.value}
-                  onSave={onInlineEdit ? (val) => onInlineEdit(section.id, c.field, val) : undefined}
-                  className="truncate text-foreground text-xs"
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-    )
-  }
-
-  if (type === 'FEATURES_LIST') {
-    return (
-      <section className={cn("mx-auto max-w-3xl px-6 py-12 flex flex-col", alignClass)}>
-        <EditableTextInline
-          as="h2"
-          value={content?.title || 'Nuestros Servicios'}
-          onSave={onInlineEdit ? (val) => onInlineEdit(section.id, 'title', val) : undefined}
-          className="text-2xl font-semibold text-foreground mb-1.5 transition-all duration-300"
-          style={{ fontFamily: 'var(--preview-font-title)' }}
-        />
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 w-full">
-          {(content?.items || []).map((item: any, i: number) => (
-            <Card
-              key={i}
-              className="p-5 border border-border/40 bg-card shadow-sm rounded-2xl transition-all duration-300 hover:scale-[1.01] hover:shadow-md flex flex-col items-stretch"
-            >
-              <EditableTextInline
-                as="h3"
-                value={item.title}
-                onSave={onInlineEdit ? (val) => onInlineEdit(section.id, 'items', val, i, 'title') : undefined}
-                className="text-sm font-semibold text-foreground mb-1.5"
-              />
-              <EditableTextInline
-                as="p"
-                type="textarea"
-                value={item.description}
-                onSave={onInlineEdit ? (val) => onInlineEdit(section.id, 'items', val, i, 'description') : undefined}
-                className="text-xs leading-relaxed text-muted-foreground w-full"
-              />
-            </Card>
-          ))}
-        </div>
-      </section>
-    )
-  }
-
-  if (type === 'TESTIMONIALS') {
-    return (
-      <section className={cn("mx-auto max-w-3xl px-6 py-12 flex flex-col", alignClass)}>
-        <EditableTextInline
-          as="h2"
-          value={content?.title || 'Lo que dicen nuestros clientes'}
-          onSave={onInlineEdit ? (val) => onInlineEdit(section.id, 'title', val) : undefined}
-          className="text-2xl font-semibold text-foreground mb-1.5 transition-all duration-300"
-          style={{ fontFamily: 'var(--preview-font-title)' }}
-        />
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 w-full">
-          {(profile.testimonials || []).map((t: any) => (
-            <Card key={t.id} className="p-5 border border-border/40 bg-card shadow-sm rounded-xl">
-              <p className="text-xs italic text-muted-foreground">"{t.quote || t.text}"</p>
-              <div className="mt-3 flex items-center justify-between text-[11px]">
-                <span className="font-semibold text-foreground">{t.name || t.author}</span>
-                <span className="text-muted-foreground">{t.role}</span>
-              </div>
-            </Card>
-          ))}
-        </div>
-      </section>
-    )
-  }
-
-  if (type === 'FAQ') {
-    return (
-      <section className={cn("mx-auto max-w-3xl px-6 py-12 flex flex-col", alignClass)}>
-        <EditableTextInline
-          as="h2"
-          value={content?.title || 'Preguntas Frecuentes'}
-          onSave={onInlineEdit ? (val) => onInlineEdit(section.id, 'title', val) : undefined}
-          className="text-2xl font-semibold text-foreground mb-1.5 transition-all duration-300"
-          style={{ fontFamily: 'var(--preview-font-title)' }}
-        />
-        <div className="mt-6 space-y-4 w-full">
-          {(profile.faqs || []).map((f: any) => (
-            <div key={f.id} className="border-b border-border/60 pb-3">
-              <h4 className="text-sm font-semibold text-foreground">{f.question || f.q}</h4>
-              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{f.answer || f.a}</p>
             </div>
           ))}
         </div>
